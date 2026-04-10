@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if mode == 'register' %}Sign Up{% else %}Log In{% endif %} — Mood Journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ── Variables ────────────────────────────── */
+        :root {
+            --sage-pale:   #E6EFEA;   /* page bg */
+            --sage-mid:    #7F9C8F;   /* panel overlay bg */
+            --sage-deep:   #3E5F55;   /* buttons, strong accents */
+            --sage-darker: #2c4840;   /* hover state */
+            --white:       #FFFFFF;
+            --gray-light:  #F4F7F6;
+            --gray-text:   #4B5563;
+            --gray-muted:  #9CA3AF;
+            --border:      #d1ddd8;
+            --font: 'Inter', system-ui, sans-serif;
+            --ease: cubic-bezier(.77,0,.18,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font);
+            background: var(--sage-pale);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Back link ───────────────────────────── */
+        .back-link {
+            position: fixed;
+            top: 24px; left: 32px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.875rem; font-weight: 600;
+            color: var(--sage-deep);
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+        .back-link:hover { opacity: .7; }
+        .back-link svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+        /* ── Logo (top-center) ───────────────────── */
+        .auth-logo {
+            position: fixed;
+            top: 26px;
+            left: 50%; transform: translateX(-50%);
+            font-size: 1.15rem; font-weight: 800;
+            color: var(--sage-deep);
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+
+        /* ── Container ───────────────────────────── */
+        .slider-wrap {
+            position: relative;
+            width: 820px;
+            max-width: 96vw;
+            height: 520px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 24px 64px rgba(62,95,85,.18), 0 4px 16px rgba(0,0,0,.06);
+        }
+
+        /* ── Two side-by-side panels ─────────────── */
+        .panels {
+            display: flex;
+            width: 200%;          /* holds both panels */
+            height: 100%;
+            transition: transform .65s var(--ease);
+        }
+
+        /* When register mode is active shift left by 50% of .panels (= 100% of .slider-wrap) */
+        .slider-wrap.show-register .panels {
+            transform: translateX(-50%);
+        }
+
+        /* ── Each half-panel ─────────────────────── */
+        .panel {
+            width: 50%;           /* = full slider width */
+            height: 100%;
+            display: flex;
+        }
+
+        /* ── Shared inner halves ─────────────────── */
+        .form-half, .info-half {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 52px 44px;
+        }
+
+        /* White form side */
+        .form-half {
+            background: var(--white);
+        }
+
+        /* Sage overlay side */
+        .info-half {
+            background: var(--sage-mid);
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative blob inside info-half */
+        .info-half::before {
+            content: '';
+            position: absolute;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            border: 48px solid rgba(255,255,255,.08);
+            top: -60px; right: -60px;
+        }
+        .info-half::after {
+            content: '';
+            position: absolute;
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            border: 32px solid rgba(255,255,255,.06);
+            bottom: -40px; left: -40px;
+        }
+
+        /* ── Form labels & inputs ────────────────── */
+        .form-half h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #1F2937;
+            margin-bottom: 6px;
+            letter-spacing: -.4px;
+        }
+
+        .form-half .sub {
+            font-size: 0.875rem;
+            color: var(--gray-muted);
+            margin-bottom: 28px;
+        }
+
+        .field-group { margin-bottom: 16px; }
+
+        .field-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--gray-text);
+            margin-bottom: 6px;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+        }
+
+        .field-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            color: #111827;
+            background: var(--gray-light);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+        }
+
+        .field-group input:focus {
+            border-color: var(--sage-mid);
+            box-shadow: 0 0 0 3px rgba(127,156,143,.18);
+            background: #fff;
+        }
+
+        .field-group input::placeholder { color: var(--gray-muted); }
+
+        .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .name-row .field-group { margin-bottom: 0; }
+
+        /* ── Primary submit button ───────────────── */
+        .btn-submit {
+            margin-top: 8px;
+            width: 100%;
+            padding: 12px;
+            background: var(--sage-deep);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .25s, transform .2s, box-shadow .25s;
+            box-shadow: 0 4px 14px rgba(62,95,85,.3);
+            letter-spacing: .2px;
+        }
+
+        .btn-submit:hover {
+            background: var(--sage-darker);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(62,95,85,.35);
+        }
+
+        .btn-submit:active { transform: translateY(0); }
+
+        /* ── Info-half content ───────────────────── */
+        .info-half h3 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+            position: relative; z-index: 1;
+        }
+
+        .info-half p {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,.8);
+            line-height: 1.6;
+            margin-bottom: 28px;
+            position: relative; z-index: 1;
+        }
+
+        /* Outlined switch button */
+        .btn-switch {
+            position: relative; z-index: 1;
+            padding: 10px 28px;
+            border: 2px solid rgba(255,255,255,.85);
+            border-radius: 10px;
+            background: transparent;
+            color: #fff;
+            font-family: var(--font);
+            font-size: 0.875rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background .25s, color .25s;
+            letter-spacing: .3px;
+        }
+
+        .btn-switch:hover {
+            background: rgba(255,255,255,.15);
+        }
+
+        /* ── Responsive ───────────────────────────── */
+        @media (max-width: 640px) {
+            .slider-wrap { height: auto; border-radius: 16px; }
+            .panel { flex-direction: column; }
+            .form-half, .info-half { padding: 36px 28px; }
+            .info-half { min-height: 160px; }
+            .info-half h3 { font-size: 1.1rem; }
+            .name-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="{{ url_for('landing') }}" class="back-link">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to home
+    </a>
+
+    <a href="{{ url_for('landing') }}" class="auth-logo">Mood Journal</a>
+
+    <!-- slider-wrap gets 'show-register' class based on Flask mode -->
+    <div class="slider-wrap {% if mode == 'register' %}show-register{% endif %}" id="sliderWrap">
+        <div class="panels">
+
+            <!-- ===== PANEL 1: LOGIN ===== -->
+            <div class="panel" id="loginPanel">
+
+                <!-- Left: Login Form -->
+                <div class="form-half">
+                    <h2>Welcome back</h2>
+                    <p class="sub">Log in to continue your journaling journey.</p>
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <div class="field-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" name="email" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="field-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" name="password" required placeholder="••••••••" autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn-submit">Log In →</button>
+                    </form>
+                </div>
+
+                <!-- Right: Switch to Register -->
+                <div class="info-half">
+                    <h3>New here?</h3>
+                    <p>Create a free account and start understanding your emotions in minutes.</p>
+                    <button class="btn-switch" onclick="showRegister()">Sign Up</button>
+                </div>
+            </div>
+
+            <!-- ===== PANEL 2: REGISTER ===== -->
+            <div class="panel" id="registerPanel">
+
+                <!-- Left: Switch to Login -->
+                <div class="info-half">
+                    <h3>Have an account?</h3>
+                    <p>Log in to pick up right where you left off.</p>
+                    <button class="btn-switch" onclick="showLogin()">Log In</button>
+                </div>
+
+                <!-- Right: Register Form -->
+                <div class="form-half">
+                    <h2>Create account</h2>
+                    <p class="sub">Start your emotional journey — it's free.</p>
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="name-row">
+                            <div class="field-group">
+                                <label for="reg-firstname">First Name</label>
+                                <input type="text" id="reg-firstname" name="first_name" required placeholder="Jane" autocomplete="given-name">
+                            </div>
+                            <div class="field-group">
+                                <label for="reg-lastname">Last Name</label>
+                                <input type="text" id="reg-lastname" name="last_name" required placeholder="Doe" autocomplete="family-name">
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="reg-email">Email</label>
+                            <input type="email" id="reg-email" name="email" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="field-group">
+                            <label for="reg-password">Password</label>
+                            <input type="password" id="reg-password" name="password" required placeholder="At least 8 characters" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn-submit">Create Account →</button>
+                    </form>
+                </div>
+            </div>
+
+        </div><!-- /.panels -->
+    </div><!-- /.slider-wrap -->
+
+    <script>
+        const wrap = document.getElementById('sliderWrap');
+
+        function showRegister() {
+            wrap.classList.add('show-register');
+        }
+
+        function showLogin() {
+            wrap.classList.remove('show-register');
+        }
+    </script>
+
+</body>
+</html>

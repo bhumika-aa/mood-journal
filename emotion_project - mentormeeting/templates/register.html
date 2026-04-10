@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up  Mood Journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body class="auth-page">
+
+    <!-- Minimal Navbar -->
+    <nav class="auth-navbar">
+        <a href="{{ url_for('landing') }}" class="logo">Mood Journal</a>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <span style="font-size:0.875rem; color:#6B7280;">Already have an account?</span>
+            <a href="{{ url_for('login') }}" class="auth-nav-action auth-nav-primary">Log In</a>
+        </div>
+    </nav>
+
+    <!-- Card -->
+    <main class="auth-main">
+        <div class="auth-card">
+
+            <div class="auth-badge"> Free Forever</div>
+            <h1 class="auth-title">Create your account</h1>
+            <p class="auth-subtitle">Start understanding your emotions in minutes.</p>
+
+            <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" required placeholder="Jane" autocomplete="given-name">
+                    </div>
+                    <div class="form-field">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" required placeholder="Doe" autocomplete="family-name">
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
+                </div>
+
+                <div class="form-field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="At least 8 characters" autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="auth-submit-btn">Create Account </button>
+            </form>
+
+        </div>
+
+        <p class="auth-footer-link">
+            Already have an account? <a href="{{ url_for('login') }}">Log in instead</a>
+        </p>
+    </main>
+
+</body>
+</html>
+

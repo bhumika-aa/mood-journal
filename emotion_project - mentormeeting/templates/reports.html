@@ -1,0 +1,169 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindJournal  Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <!-- Script for rendering charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <!-- Premium Sidebar Dashboard Layout -->
+  <div class="app-layout">
+    <!-- Sidebar navigation -->
+    <aside class="sidebar">
+      <div class="logo">MindJournal</div>
+      <nav class="nav-links">
+        <a href="/dashboard" class="nav-item">          <span class="text">Dashboard</span>
+        </a>
+        <a href="/activities" class="nav-item">          <span class="text">Activities</span>
+        </a>
+        <a href="/reports" class="nav-item active">          <span class="text">Reports</span>
+        </a>
+      </nav>
+      <div class="user-block">
+        <a href="/logout" class="nav-item">          <span class="text">Log out</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Scrollable Area -->
+    <div class="main-area">
+      <header class="site-header mobile-header">
+        <span class="logo">MindJournal</span>
+        <a class="btn btn-urgent btn-pill" href="tel:988" title="Crisis support">Urgent support</a>
+      </header>
+
+      <main class="page reports-page">
+        <!-- Reports Header -->
+        <header class="reports-header section-header">
+          <h1 class="reports-title">Insights/Reports</h1>
+          <p class="reports-caption">Understand how youve been feeling over time</p>
+        </header>
+
+        <!-- Section 1: Time Filter -->
+        <div class="time-filter-block">
+          <div class="pill-group enhanced-pills" role="group" aria-label="Time Filter">
+            <button type="button" class="pill filter-pill" data-days="7">Weekly</button>
+            <button type="button" class="pill filter-pill active" data-days="30">Monthly</button>
+            <button type="button" class="pill filter-pill" data-days="365">Yearly</button>
+          </div>
+        </div>
+
+        <div class="reports-grid">
+          <!-- Section 6: Streak & Consistency (Top) -->
+          <div class="card streak-card new-streak-style">
+            <div class="streak-flame-icon" aria-hidden="true">🔥</div>
+            <div class="streak-week-grid" id="streakWeekGrid">
+              <!-- JS Populated -->
+            </div>
+            <div class="streak-details">
+              <h3 class="streak-main-text">You're on a <span class="streak-highlight" id="streakLabel">0-day</span> streak!</h3>
+              <p class="streak-msg">Keep it up, you're making amazing progress.</p>
+            </div>
+          </div>
+
+          <!-- Section 2: Mood Analytics -->
+          <div class="card charts-card">
+            <h3>Mood Trend</h3>
+            <div class="chart-container">
+              <canvas id="moodLineChart"></canvas>
+            </div>
+            
+            <div class="chart-split-row">
+              <div class="pie-chart-block">
+                <h3>Mood Distribution</h3>
+                <canvas id="moodPieChart"></canvas>
+                <p id="pieInsightText" class="pie-insight">Keep logging to see your mood distribution!</p>
+              </div>
+              <div class="summary-insight-block">
+                <h3>Summary Insights</h3>
+                <ul id="summaryInsightsList" class="insights-list">
+                  <!-- JS populated -->
+                  <li>Collect more data to generate insights.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Calendar View -->
+          <div class="card calendar-card">
+            <div class="calendar-header">
+              <button type="button" class="btn btn-icon cal-nav" id="prevMonthBtn" title="Previous month"></button>
+              <h3 id="calendarMonthYear" style="margin:0;">This Month</h3>
+              <button type="button" class="btn btn-icon cal-nav" id="nextMonthBtn" title="Next month"></button>
+            </div>
+            <div class="calendar-grid-wrapper">
+              <div class="calendar-weekdays">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+              </div>
+              <div class="calendar-days" id="calendarDays">
+                <!-- JS populated dates -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Emotional Insights Details -->
+          <div class="card insight-card">
+            <h3>Emotional Balance </h3>
+            <div class="insight-stats">
+              <div class="stat-box">
+                <span class="stat-title">Most Frequent</span>
+                <span class="stat-value" id="frequentEmotionText">---</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-title">Positivity Rate</span>
+                <span class="stat-value" id="positivityRateText">---</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Smart Recommendations -->
+          <div class="card recommendations-card" style="display: none" id="reportsRecCard">
+            <h3>Smart Recommendations </h3>
+            <p>Based on your current mood trends, these activities might help:</p>
+            <ul id="reportsRecList" class="rec-list-styled">
+               <!-- Populated by JS -->
+            </ul>
+          </div>
+
+          <!-- Section 7: Trusted Contact Feature -->
+          <div class="card trusted-card">
+            <h3> Trusted Contact</h3>
+            <p class="trusted-desc">
+              If we detect extended periods of low mood (15+ days in a month), we can softly notify a trusted friend to check in on you.
+            </p>
+            <form id="trustedContactForm" class="trusted-form">
+              <input type="email" id="trustedEmail" placeholder="friend@example.com" class="input-field" required />
+              <button type="submit" class="btn btn-primary btn-pill">Save Contact</button>
+            </form>
+            <p id="trustedFeedback" class="form-feedback-text"></p>
+          </div>
+
+        </div> <!-- /.reports-grid -->
+      </main>
+    </div> <!-- End main-area -->
+  </div> <!-- End app-layout -->
+
+  <!-- Pass server data safely -->
+  <script id="reportsData" type="application/json">
+    {
+      "distribution": {{ distribution|tojson }},
+      "history": {{ history|tojson }},
+      "trusted_contact": {% if trusted_contact %}"{{ trusted_contact }}"{% else %}null{% endif %},
+      "current_days": {{ current_days }}
+    }
+  </script>
+
+  <script src="/static/js/reports.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,15 @@
+# Database Connection Fix Walkthrough
+
+I successfully fixed the application so that the **Activities Page** and **Smart Recommendations** are displaying information accurately from your MySQL database!
+
+## What was done
+1. **Added `.env` handling**: Created a local `.env` file at the root of the project with the `root` MySQL credentials you provided and your database name (`mindjournal_db`).
+2. **Updated App Logic**: Integrated `python-dotenv` into `app.py` so that it seamlessly loads these database credentials automatically when Flask boots up.
+3. **Installed Dependencies**: Installed `python-dotenv` into your local environment and updated your `requirements.txt` so everything continues to work beautifully if you deploy it later.
+
+## Verification
+I tested the website with our automated browser assistant:
+- Navigating to `/activities` now correctly surfaces the various activities populated in your database ("Short walk outside", "Guided breathing", etc).
+- Writing a new journal entry successfully triggers the classification, logs it in the database, and loads the smart recommended tasks beneath your resulting score. I recorded a session verifying that clicking the "Analyze" button now pulls in the smart recommendations.
+
+![Browser Activity Check](file:///C:/Users/user/.gemini/antigravity/brain/2638232e-f30a-4085-a8d7-bc7620c07c8a/test_activities_page_after_fix_1775660748516.webp)

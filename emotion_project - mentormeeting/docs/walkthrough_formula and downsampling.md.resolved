@@ -1,0 +1,22 @@
+# Algorithm Updates Walkthrough
+
+I have updated the machine learning pipeline to natively handle the issues you reported with precision.
+
+## 1. Mathematical Balance (Class Weights)
+
+Instead of brutally downsampling large real classes (like typical Joy/Sadness texts), you are now preserving **all** real occurrences, and mathematical 'Class Weights' are calculated dynamically at the beginning of `train.py`:
+```python
+n_samples = len(train_df)
+num_classes = 6
+class_counts = train_df["label"].value_counts().sort_index().values
+class_weights = n_samples / (num_classes * class_counts)
+```
+
+The `SoftmaxRegression` inside `src/model.py` now leverages this to perfectly balance its backpropagation. If `Fear` has very few samples and `Joy` has 10x more, `Fear` data will scale 10x harder in the loss, completely neutralizing the dominance issue manually *from scratch*.
+
+## 2. Tuning Data Augmentation
+To answer your question: **"What about data augmentation?"**
+I retained the data augmentations done with `synonyms` and `intensifiers` because they offer excellent vocabulary-building for underrepresented classes. However, instead of making the target equal to 80% of the *largest* class, we now augment only up to the *mean* amount. This is safer—it prevents the model from deeply overfitting the same repetitive synthetic words just to match the overwhelming Joy/Sad sizes, allowing the model's new class weights to do the heavily lifting instead.
+
+## 3. Threshold Calibration
+To solve your final issue regarding the model always giving a Neutral state, I've lowered the default `inference.py` threshold from `< 0.35` down to `< 0.25`. Random chance for a 6-class system is exactly `0.16`, so setting the cutoff slightly above that at `0.25` is an academically sound threshold that stops neutral-bias while rejecting true garbage.

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindJournal – Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+  <!-- Premium Sidebar Dashboard Layout -->
+  <div class="app-layout">
+    <!-- Sidebar navigation -->
+    <aside class="sidebar">
+      <div class="logo">MindJournal</div>
+      <nav class="nav-links">
+        <a href="/dashboard" class="nav-item active">
+          <span class="text">Dashboard</span>
+        </a>
+        <a href="/activities" class="nav-item">
+          <span class="text">Activities</span>
+        </a>
+        <a href="/reports" class="nav-item">
+          <span class="text">Reports</span>
+        </a>
+      </nav>
+      <div class="user-block">
+        <a href="/logout" class="nav-item">
+          <span class="text">Log out</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Scrollable Area -->
+    <div class="main-area">
+      <header class="site-header mobile-header">
+        <span class="logo">MindJournal</span>
+        <a class="btn btn-urgent btn-pill" href="tel:988" title="Crisis support">Urgent support</a>
+      </header>
+
+      <main class="page">
+        <!-- Intro / Greeting screen -->
+        <section id="introScreen" class="intro-screen" aria-label="Welcome">
+          <div class="intro-card">
+            <p class="status-line" id="greetingBadge">Welcome back</p>
+            <h1 class="intro-title" id="greetingTitle">Good morning, {{ username }}!</h1>
+            <p class="intro-caption">
+              How are you feeling right now? Take a moment to reflect — choose your mood, pick the emotion that fits
+              best, and write a few lines in your journal.
+            </p>
+            <button type="button" class="btn btn-primary btn-pill btn-large" id="startJournalingBtn">
+              Start Journaling
+            </button>
+          </div>
+        </section>
+
+        <div id="alertBox" class="alert" style="display: none" role="alert"></div>
+
+        <form id="moodForm" class="checkin-flow" hidden>
+          <div class="stepper" aria-hidden="true">
+            <div class="step active" data-step="1">1</div>
+            <div class="step" data-step="2">2</div>
+            <div class="step" data-step="3">3</div>
+            <div class="step" data-step="4">4</div>
+          </div>
+
+          <input type="hidden" id="selectedMood" value="" />
+          <input type="hidden" id="selectedSecondaryEmotion" value="" />
+          <input type="hidden" id="selectedCause" value="" />
+
+          <div class="card checkin-card">
+            <!-- Step 1: mood cards -->
+            <section class="stepSection active-panel" data-panel="1">
+              <h2 class="step-heading">How are you feeling today?</h2>
+              <p class="step-hint">Tap one option</p>
+              <div class="mood-grid" id="moodGrid" role="group" aria-label="Overall mood">
+                <button type="button" class="mood-card mood-awesome" data-mood="Awesome">
+                  <span class="mood-emoji img-slot" aria-hidden="true">😄</span>
+                  <span class="mood-label">Awesome</span>
+                </button>
+                <button type="button" class="mood-card mood-good" data-mood="Good">
+                  <span class="mood-emoji img-slot" aria-hidden="true">🙂</span>
+                  <span class="mood-label">Good</span>
+                </button>
+                <button type="button" class="mood-card mood-fine" data-mood="Fine">
+                  <span class="mood-emoji img-slot" aria-hidden="true">😐</span>
+                  <span class="mood-label">Fine</span>
+                </button>
+                <button type="button" class="mood-card mood-bad" data-mood="Bad">
+                  <span class="mood-emoji img-slot" aria-hidden="true">😞</span>
+                  <span class="mood-label">Bad</span>
+                </button>
+                <button type="button" class="mood-card mood-terrible" data-mood="Terrible">
+                  <span class="mood-emoji img-slot" aria-hidden="true">😣</span>
+                  <span class="mood-label">Terrible</span>
+                </button>
+              </div>
+              <div class="actions actions-split">
+                <span></span>
+                <button type="button" class="btn btn-primary btn-pill" id="toStep2" disabled>
+                  Continue
+                </button>
+              </div>
+            </section>
+
+            <!-- Step 2: emotion cards (filled by JS) -->
+            <section class="stepSection" data-panel="2">
+              <h2 class="step-heading">Which emotion best describes how you feel?</h2>
+              <p class="step-hint">Tap one option</p>
+              <div class="chip-grid" id="emotionGrid" role="group" aria-label="Emotion"></div>
+              <div class="actions actions-split">
+                <button type="button" class="btn btn-ghost" id="backToStep1">Back</button>
+                <button type="button" class="btn btn-primary btn-pill" id="toStep3" disabled>
+                  Continue
+                </button>
+              </div>
+            </section>
+
+            <!-- Step 3: cause cards -->
+            <section class="stepSection" data-panel="3">
+              <h2 class="step-heading">What is making you feel this way?</h2>
+              <p class="step-hint">Tap one area</p>
+              <div class="cause-grid" id="causeGrid" role="group" aria-label="Cause">
+                <button type="button" class="cause-card" data-cause="Health">Health</button>
+                <button type="button" class="cause-card" data-cause="Sleep">Sleep</button>
+                <button type="button" class="cause-card" data-cause="Exercise">Exercise</button>
+                <button type="button" class="cause-card" data-cause="Work">Work</button>
+                <button type="button" class="cause-card" data-cause="School">School</button>
+                <button type="button" class="cause-card" data-cause="Friends">Friends</button>
+                <button type="button" class="cause-card" data-cause="Family">Family</button>
+                <button type="button" class="cause-card" data-cause="Partner">Partner</button>
+              </div>
+              <div class="actions actions-split">
+                <button type="button" class="btn btn-ghost" id="backToStep2">Back</button>
+                <button type="button" class="btn btn-primary btn-pill" id="toStep4" disabled>
+                  Continue
+                </button>
+              </div>
+            </section>
+
+            <!-- Step 4: journal -->
+            <section class="stepSection" data-panel="4">
+              <h2 class="step-heading">Journal</h2>
+              <p class="hint">
+                Write what you felt over the day. We analyze your words to estimate your actual
+                mood.
+              </p>
+              <div class="field">
+                <label class="sr-only" for="journalText">Your journal</label>
+                <textarea id="journalText" rows="8" required placeholder="Today I felt… because…"></textarea>
+              </div>
+              <div class="actions actions-split">
+                <button type="button" class="btn btn-ghost" id="backToStep3">Back</button>
+                <button type="submit" class="btn btn-primary btn-pill" id="analyzeBtn">
+                  Analyze
+                </button>
+              </div>
+            </section>
+          </div>
+        </form>
+
+        <!-- Result area (old clean style) -->
+        <div id="resultArea" class="card resultCard" style="display: none">
+          <h2 class="step-heading">Result</h2>
+          <div id="resultBody"></div>
+
+          <div id="feedbackArea" class="feedback-block" style="display: none">
+            <p id="feedbackQuestion" class="feedback-question"></p>
+            <div class="feedback-actions">
+              <button type="button" class="btn btn-primary btn-pill feedback-btn" id="yesBtn">Yes</button>
+              <button type="button" class="btn btn-outline btn-pill feedback-btn" id="noBtn">No</button>
+            </div>
+          </div>
+          
+          <!-- Smart Recommendations Area -->
+          <div id="recommendationsArea" class="recommendations-block" style="display: none">
+            <h3 class="rec-heading">Smart Recommendations</h3>
+            <p class="rec-subheading">Based on your mood, we suggest these activities to help you reflect or feel better:</p>
+            <div id="recommendationsGrid" class="rec-grid">
+               <!-- Inserted by JS -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div> <!-- End main-area -->
+  </div> <!-- End app-layout -->
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>

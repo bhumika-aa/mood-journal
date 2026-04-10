@@ -1,0 +1,65 @@
+# Mental Wellness App Expansion (MindJournal)
+
+This plan outlines the steps required to implement the new features for MindJournal, specifically focusing on the new Database schema, Smart Recommendations, and the new sections (Activities and Reports).
+
+## User Review Required
+
+> [!IMPORTANT]
+> Since we are moving towards a fully-fledged database backing the app, we'll need to define how strictly we want to enforce user login right now. 
+> - Should I rebuild the `/login` and `/register` endpoints to actually create users in MySQL (instead of just mocking it in sessions)?
+> - Once we introduce `user_id` to `mood_journals`, any journals logged without a logged-in user will fail unless we allow anonymous tracking. 
+
+## Proposed Changes
+
+### Database Expansion (`db.py`)
+We will expand the database initialization (`init_db`) to include the following tables:
+- **`users`**: To store `id`, `name`, `email`, `password_hash`, and importantly, `trusted_contact_email`.
+- **`activities`**: To store predefined guided tasks (`id`, `title`, `description`, `duration_minutes`, `category`).
+- **`user_activity_log`**: To track which activities a user completes and when (useful for Streaks).
+- **Modify `mood_journals`**: Add a `user_id` foreign key.
+
+#### [MODIFY] [db.py](file:///d:/final%20year%20project/emotion_project/db.py)
+
+---
+
+### Backend Updates (`app.py`)
+- **Authentication**: Update `/register` and `/login` to use the new `users` table instead of just putting the email in the session.
+- **Smart Recommendations API**: Provide an endpoint `/api/recommendations` that returns specific activities from the database suited to specific emotions.
+- **Activities & Reports context**: The `/dashboard` route will begin injecting historical data or at least pass down the `user_id` so the frontend can query logs and streaks.
+
+#### [MODIFY] [app.py](file:///d:/final%20year%20project/emotion_project/app.py)
+
+---
+
+### UI / Frontend Updates (`index.html`, `app.js`)
+
+**Dashboard & Smart Recommendations:**
+- I will leave the initial structure of the dashboard matching the current design, but when the user analyzes their journal, the Result Card will inject **Smart Recommendation Cards** right beneath the sentiment score.
+- If Sadness: Suggest walking, gratitude, calming music.
+- If Anger: Suggest deep breathing, stepping away.
+- If Fear/Anxiety: Suggest 5-4-3-2-1 grounding.
+- If Joy: Suggest gratitude journaling.
+
+**New Sections (Activities & Reports):**
+- I'll build out the skeleton and UI for the "Activities" page, containing categories like "Guided Activities" and "Emotional Healing".
+- I'll build the skeleton for the "Reports" page with placeholder charts.
+
+#### [MODIFY] [index.html](file:///d:/final%20year%20project/emotion_project/templates/index.html)
+#### [MODIFY] [app.js](file:///d:/final%20year%20project/emotion_project/static/js/app.js)
+
+## Open Questions
+
+> [!WARNING]
+> Before I proceed and write the SQL statements to create the new tables:
+> 1. Do you have MySQL running locally on your computer? (`mysql.connector` is looking for it). If you don't have MySQL ready, we should use SQLite instead so you don't get errors!
+> 2. For the "Reports" charts, do you have a preferred charting library like Chart.js or Recharts, or should I just set up Chart.js (which is very good for this)?
+
+## Verification Plan
+
+### Automated Tests
+- N/A
+
+### Manual Verification
+- Testing the login/registration real flow.
+- Simulating a journal entry and verifying that the correct "Smart Recommendations" pop up.
+- Clicking the sidebar tabs to ensure navigation to Activities/Reports works smoothly.

@@ -1,0 +1,466 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindJournal  Activities</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="logo">MindJournal</div>
+      <nav class="nav-links">
+        <a href="/dashboard" class="nav-item">          <span class="text">Dashboard</span>
+        </a>
+        <a href="/activities" class="nav-item active">          <span class="text">Activities</span>
+        </a>
+        <a href="/reports" class="nav-item">          <span class="text">Reports</span>
+        </a>
+      </nav>
+      <div class="user-block">
+        <a href="/logout" class="nav-item">          <span class="text">Log out</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <header class="site-header mobile-header">
+        <span class="logo">MindJournal</span>
+      </header>
+
+      <main class="page activities-page">
+        <div class="activities-header">
+          <h1 class="intro-title">Activities</h1>
+          <p class="intro-caption">Explore a variety of exercises and resources to support your emotional well-being.</p>
+        </div>
+
+        <div class="activities-container">
+
+          <!-- 1. Quick Calm -->
+          <section class="activity-section">
+            <div class="section-title-wrap">
+              <span class="section-emoji" aria-hidden="true"></span>
+              <h2 class="section-heading">Quick Calm <span class="section-subtitle">(Instant Relief)</span></h2>
+            </div>
+            <div class="activities-grid quick-calm-grid">
+              
+              <div class="activity-card quick-card">
+                <div class="breath-circle-container">
+                  <div class="breath-circle"></div>
+                </div>
+                <div class="card-content">
+                  <h3 class="card-title">Deep Breathing Exercise</h3>
+                  <p class="card-desc">Breathe in for 4, hold for 4, exhale for 6.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">2 min</span>
+                  <button class="btn btn-primary btn-pill btn-sm rec-btn" data-action="breathe" data-title="Deep Breathing Exercise">Start</button>
+                </div>
+              </div>
+
+              <div class="activity-card quick-card">
+                <div class="icon-blob"></div>
+                <div class="card-content">
+                  <h3 class="card-title">5-4-3-2-1 Grounding</h3>
+                  <p class="card-desc">Focus on your immediate surroundings.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">3 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="article" data-title="5-4-3-2-1 Grounding Technique" data-content="<p>Focus on your breathing. Now find and list out loud:</p><ul><li><strong>5 things</strong> you can <strong>see</strong> around you.</li><li><strong>4 things</strong> you can <strong>touch</strong> or feel physically.</li><li><strong>3 things</strong> you can <strong>hear</strong>.</li><li><strong>2 things</strong> you can <strong>smell</strong>.</li><li><strong>1 thing</strong> you can <strong>taste</strong>.</li></ul><p>This pulls your mind away from anxious thoughts and grounds you in the present.</p>">Start</button>
+                </div>
+              </div>
+
+              <div class="activity-card quick-card">
+                <div class="icon-blob"></div>
+                <div class="card-content">
+                  <h3 class="card-title">Close Your Eyes</h3>
+                  <p class="card-desc">Rest your eyes and relax your facial muscles.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">1 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="breathe" data-title="Close Your Eyes & Relax">Start</button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <hr class="section-divider">
+
+          <!-- 2. Mind & Reflection -->
+          <section class="activity-section">
+            <div class="section-title-wrap">
+              <span class="section-emoji" aria-hidden="true"></span>
+              <h2 class="section-heading">Mind & Reflection</h2>
+            </div>
+            <div class="activities-grid">
+              
+              <div class="activity-card reflection-card">
+                <div class="prompt-preview">"Today, I am grateful for..."</div>
+                <div class="card-content">
+                  <h3 class="card-title">Gratitude Journaling</h3>
+                  <p class="card-desc">Shift focus to the positives in your life.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">5 min</span>
+                  <button class="btn btn-primary btn-pill btn-sm rec-btn" data-action="journal" data-title="Gratitude Journaling" data-prompt="Today, I am perfectly grateful for...">Try Now</button>
+                </div>
+              </div>
+
+              <div class="activity-card reflection-card">
+                <div class="prompt-preview">"I feel overwhelmed because..."</div>
+                <div class="card-content">
+                  <h3 class="card-title">Write Your Feelings</h3>
+                  <p class="card-desc">A safe space to untangle your thoughts.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">5 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="journal" data-title="Write Your Feelings" data-prompt="Right now, my mind feels heavy because...">Try Now</button>
+                </div>
+              </div>
+
+              <div class="activity-card reflection-card">
+                <div class="prompt-preview">"I am capable and strong."</div>
+                <div class="card-content">
+                  <h3 class="card-title">Positive Affirmations</h3>
+                  <p class="card-desc">Rebuild confidence through kind words.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">2 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="journal" data-title="Positive Affirmations" data-prompt="I remind myself that I am capable because...">Try Now</button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <hr class="section-divider">
+
+          <!-- 3. Physical Reset -->
+          <section class="activity-section">
+            <div class="section-title-wrap">
+              <span class="section-emoji" aria-hidden="true"></span>
+              <h2 class="section-heading">Physical Reset</h2>
+            </div>
+            <div class="activities-grid">
+              
+              <div class="activity-card physical-card">
+                <div class="physical-icon"></div>
+                <div class="card-content">
+                  <h3 class="card-title">Stretching Routine</h3>
+                  <p class="card-desc">Release physical tension softly.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">5 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="article" data-title="Quick 5-Min Stretching" data-content="<p>Stand up and loosen your limbs.</p><ol><li><strong>Neck Rolls:</strong> Gently roll your head side by side 5 times.</li><li><strong>Shoulder Shrugs:</strong> Lift shoulders to ears, release, drop them back down. Do 5 reps.</li><li><strong>Torso Twists:</strong> Gently twist your torso left and right to loosen the lower back.</li><li><strong>Forward Fold:</strong> Hinge at the hips and let your arms hang gracefully toward the ground. Don't push, just relax!</li></ol>">Start Activity</button>
+                </div>
+              </div>
+
+              <div class="activity-card physical-card">
+                <div class="physical-icon"></div>
+                <div class="card-content">
+                  <h3 class="card-title">Short Walk Challenge</h3>
+                  <p class="card-desc">Get some fresh air and change your space.</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">10 min</span>
+                  <button class="btn btn-outline btn-pill btn-sm rec-btn" data-action="article" data-title="The 10-Min Walk Challenge" data-content="<p>Stepping away from the screen literally changes your brain chemistry.</p><p>Go outside. Walk without a destination for 5 minutes in one direction, and then 5 minutes back. Try not to use your phone, just look at the trees and sky.</p><p>You will come back feeling completely different.</p>">Start Activity</button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <hr class="section-divider">
+
+          <!-- 4. Guided Relaxation -->
+          <section class="activity-section">
+            <div class="section-title-wrap">
+              <span class="section-emoji" aria-hidden="true"></span>
+              <h2 class="section-heading">Guided Relaxation</h2>
+            </div>
+            <div class="activities-grid list-grid">
+              
+              <div class="activity-card relaxation-card">
+                <button class="play-btn" data-action="audio" data-title="Focus Breathing" aria-label="Play Meditation" title="Play Meditation"></button>
+                <div class="card-content">
+                  <h3 class="card-title">Focus Breathing Meditation</h3>
+                  <p class="card-desc">Follow the calm voice to center yourself.</p>
+                </div>
+                <div class="card-duration">5 min</div>
+              </div>
+
+              <div class="activity-card relaxation-card">
+                <button class="play-btn" data-action="audio" data-title="Body Scan" aria-label="Play Body Scan" title="Play Body Scan"></button>
+                <div class="card-content">
+                  <h3 class="card-title">Body Scan Relaxation</h3>
+                  <p class="card-desc">Progressive muscle relaxation technique.</p>
+                </div>
+                <div class="card-duration">10 min</div>
+              </div>
+
+              <div class="activity-card relaxation-card">
+                <button class="play-btn" data-action="audio" data-title="Calm Nature Sounds" aria-label="Play Calm Music" title="Play Calm Music"></button>
+                <div class="card-content">
+                  <h3 class="card-title">Calm Nature Sounds</h3>
+                  <p class="card-desc">Immersive audio to quiet the mind.</p>
+                </div>
+                <div class="card-duration">8 min</div>
+              </div>
+
+            </div>
+          </section>
+
+          <hr class="section-divider">
+
+          <!-- 5. Learn & Heal -->
+          <section class="activity-section">
+            <div class="section-title-wrap">
+              <span class="section-emoji" aria-hidden="true"></span>
+              <h2 class="section-heading">Learn & Heal</h2>
+            </div>
+            <div class="activities-grid">
+              
+              <div class="activity-card article-card">
+                <div class="article-img placeholder-img-1"></div>
+                <div class="card-content">
+                  <h3 class="card-title">Understanding Your Emotions</h3>
+                  <p class="card-desc">Why do we feel sad or anxious?</p>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-ghost btn-sm rec-btn" data-action="article" data-title="Understanding Your Emotions" data-content="<p>Emotions are not inherently 'good' or 'bad'they are simply signals indicating that something requires our attention.</p><p>For instance, anger often signals that a boundary has been crossed, while sadness indicates that we have lost something meaningful.</p><p>Learning to accept and label these signals without immediately reacting out of them is the foundation of emotional intelligence.</p>">Read </button>
+                </div>
+              </div>
+
+              <div class="activity-card article-card">
+                <div class="article-img placeholder-img-2"></div>
+                <div class="card-content">
+                  <h3 class="card-title">How To Deal With Stress</h3>
+                  <p class="card-desc">Actionable tips for daily life.</p>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-ghost btn-sm rec-btn" data-action="article" data-title="How To Deal With Stress" data-content="<p>Chronic stress triggers our fundamental 'fight or flight' response when we aren't in any real physical danger.</p><p><strong>Here are 3 ways to reduce it quickly:</strong></p><ul><li>Engage in 5-10 minutes of active cardio exercise.</li><li>Use physiological sighs (two inhales followed by one long exhale) to reset your nervous system.</li><li>Keep a list of manageable daily goals so you don't feel overwhelmed.</li></ul>">Read </button>
+                </div>
+              </div>
+
+              <div class="activity-card article-card">
+                <div class="article-img placeholder-img-3"></div>
+                <div class="card-content">
+                  <h3 class="card-title">The Art of Journaling</h3>
+                  <p class="card-desc">Make journaling a powerful habit.</p>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-ghost btn-sm rec-btn" data-action="article" data-title="The Art of Journaling" data-content="<p>Journaling is a way of clearing the cache of your brain.</p><p>You do not have to write well. You do not even have to write in full sentences. The sole purpose is to externalize the chaotic flow of thoughts onto a tangible medium so that your mind stops racing to maintain them.</p><p>Try writing without stopping or judging yourself for a full three minutes.</p>">Read </button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </div> <!-- End main-area -->
+  </div> <!-- End app-layout -->
+
+  <!-- Universal Activity Modal -->
+  <div id="activityModal" class="activity-modal-overlay" hidden>
+    <div class="activity-modal-box">
+      <header class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Activity Name</h2>
+        <button id="modalClose" class="modal-close-btn">&times;</button>
+      </header>
+      
+      <div id="modalBody" class="modal-body">
+        <!-- Content gets injected here by JS depending on mode -->
+      </div>
+      
+      <footer class="modal-footer" id="modalFooter" hidden>
+        <!-- Footer actions injected here -->
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const modal = document.getElementById('activityModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFooter = document.getElementById('modalFooter');
+    const modalClose = document.getElementById('modalClose');
+
+    // State
+    let currentInterval = null; 
+    let audioTimer = null;
+
+    // Reset Modal function
+    function resetModal() {
+      clearInterval(currentInterval);
+      clearInterval(audioTimer);
+      modalBody.innerHTML = '';
+      modalFooter.innerHTML = '';
+      modalFooter.hidden = true;
+      modal.hidden = true;
+    }
+
+    modalClose.addEventListener('click', resetModal);
+    modal.addEventListener('click', (e) => {
+      // close if clicking overlay outside
+      if(e.target === modal) resetModal();
+    });
+
+    // Handle Clicks
+    document.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // card visual bounce feedback
+        const card = e.target.closest('.activity-card');
+        if (card) {
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => { card.style.transform = ''; }, 150);
+        }
+
+        const action = btn.dataset.action;
+        const title = btn.dataset.title;
+        
+        modalTitle.textContent = title;
+
+        // Render appropriate UI
+        if(action === 'breathe') {
+          renderBreatheMode(title);
+        } else if (action === 'journal') {
+          renderJournalMode(title, btn.dataset.prompt);
+        } else if (action === 'audio') {
+          renderAudioMode(title);
+        } else if (action === 'article') {
+          renderArticleMode(title, btn.dataset.content);
+        }
+
+        modal.hidden = false;
+      });
+    });
+
+    // ---- Mode Renderers ----
+
+    function renderBreatheMode(title) {
+       modalBody.innerHTML = `
+         <div class="flex-column-center">
+            <div class="interactive-breath-circle">
+                <div id="breathInstruction" class="breath-text">Breathe In...</div>
+            </div>
+            <p id="breathCounter" class="breath-counter">0:00</p>
+         </div>
+       `;
+       
+       let seconds = 0;
+       let phase = 0; // 0=in, 1=hold, 2=out
+       const instructions = ["Breathe In...", "Hold...", "Exhale gracefully..."];
+       const circle = modalBody.querySelector('.interactive-breath-circle');
+       const instrEl = document.getElementById('breathInstruction');
+       const countEl = document.getElementById('breathCounter');
+
+       // Kick off animation state manually since it's JS driven
+       circle.style.transform = 'scale(1.5)';
+       
+       currentInterval = setInterval(() => {
+          seconds++;
+          countEl.textContent = `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+          
+          const cycle = seconds % 14; 
+          // 4s in, 4s hold, 6s out = 14s cycle
+          if (cycle === 0) { 
+            instrEl.textContent = instructions[0]; 
+            circle.style.transform = 'scale(1.5)';
+            circle.style.opacity = '0.4';
+          } else if (cycle === 4) { 
+            instrEl.textContent = instructions[1]; 
+            circle.style.transform = 'scale(1.5)';
+          } else if (cycle === 8) { 
+            instrEl.textContent = instructions[2]; 
+            circle.style.transform = 'scale(1)';
+            circle.style.opacity = '0.8';
+          }
+       }, 1000);
+    }
+
+    function renderJournalMode(title, prompt) {
+       modalBody.innerHTML = `
+         <p class="journal-prompt-display">${prompt}</p>
+         <textarea id="privateJournal" class="interactive-journal" placeholder="Start typing here... This is a private space, it won't be analyzed."></textarea>
+       `;
+       
+       modalFooter.innerHTML = `
+         <button class="btn btn-outline btn-pill" onclick="document.getElementById('modalClose').click()">Discard & Close</button>
+         <button class="btn btn-primary btn-pill" id="saveJournalBtn">Save Session</button>
+       `;
+       modalFooter.hidden = false;
+
+       document.getElementById('saveJournalBtn').addEventListener('click', () => {
+         const ta = document.getElementById('privateJournal');
+         ta.value = "Saved successfully! Closing...";
+         ta.disabled = true;
+         setTimeout(() => { resetModal(); }, 1200);
+       });
+    }
+
+    function renderAudioMode(title) {
+       modalBody.innerHTML = `
+          <div class="audio-player-wrapper">
+             <div class="audio-waves">
+                <span></span><span></span><span></span><span></span><span></span>
+             </div>
+             <p class="audio-status">Playing...</p>
+             <div class="progress-bar-bg">
+                <div id="audioProgress" class="progress-bar-fill"></div>
+             </div>
+             <div class="audio-controls">
+                <button class="audio-ctrl-btn"></button>
+                <button class="audio-ctrl-btn main-play-btn" id="audioToggle"></button>
+                <button class="audio-ctrl-btn"></button>
+             </div>
+          </div>
+       `;
+
+       let progress = 0;
+       let playing = true;
+       const toggleBtn = document.getElementById('audioToggle');
+       const progressFill = document.getElementById('audioProgress');
+       const waves = document.querySelector('.audio-waves');
+
+       toggleBtn.addEventListener('click', () => {
+          playing = !playing;
+          toggleBtn.textContent = playing ? '' : '';
+          if(playing) waves.classList.remove('paused');
+          else waves.classList.add('paused');
+       });
+
+       audioTimer = setInterval(() => {
+          if (!playing) return;
+          progress += 0.5; // Simulate progress
+          if (progress > 100) progress = 100;
+          progressFill.style.width = progress + '%';
+       }, 500);
+    }
+
+    function renderArticleMode(title, htmlContent) {
+       modalBody.innerHTML = `
+         <div class="article-content-wrapper">
+           ${htmlContent}
+         </div>
+       `;
+       modalFooter.innerHTML = `
+         <button class="btn btn-primary btn-pill" onclick="document.getElementById('modalClose').click()">Finished Reading</button>
+       `;
+       modalFooter.hidden = false;
+    }
+
+  </script>
+</body>
+</html>
+
+
