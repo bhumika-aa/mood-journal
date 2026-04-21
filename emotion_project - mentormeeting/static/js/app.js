@@ -210,7 +210,25 @@ function renderResult(analysis, isMatch, selectedMood, recommendations = []) {
     html += `<div class="resultLine" style="opacity:.85">Tip: a longer entry usually gives clearer signals than a single sentence.</div>`;
   }
 
-  html += `<div class="resultLine">AI confidence: <strong>${confPercent}</strong></div>`;
+  const smConfPercent   = formatConfidencePercent(confidence * 100);
+  const nbConfPercent   = formatConfidencePercent(analysis.nb_confidence * 100);
+
+  html += `
+    <div class="resultLine">AI Analysis Comparison:</div>
+    <div class="confidence-comparison">
+      <div class="conf-item">
+        <span class="conf-label">Softmax Regression (Current Main)</span>
+        <div class="conf-bar-bg"><div class="conf-bar" style="width: ${smConfPercent}"></div></div>
+        <div class="conf-val"><strong>${smConfPercent}</strong> confident in <strong>${predictedEmotion}</strong></div>
+      </div>
+      <div class="conf-item">
+        <span class="conf-label">Naive Bayes (New Experimental)</span>
+        <div class="conf-bar-bg"><div class="conf-bar nb" style="width: ${nbConfPercent}"></div></div>
+        <div class="conf-val"><strong>${nbConfPercent}</strong> confident in <strong>${analysis.nb_emotion}</strong></div>
+      </div>
+    </div>
+  `;
+
 
   resultBody.innerHTML = html;
 
@@ -331,15 +349,28 @@ form.addEventListener("submit", async (e) => {
     const isMatch = resp.isMatch;
     const selectedMood = payload.selectedMood;
     const recommendations = resp.recommendations || [];
+    
+    // Store journalId for feedback
+    window.lastJournalId = resp.meta ? resp.meta.journalId : null;
 
     renderResult(analysis, isMatch, selectedMood, recommendations);
 
     if (analysis.show_alert) {
       feedbackArea.style.display = "none";
-    } else if (isMatch) {
-      feedbackArea.style.display = "none";
     } else {
+      // Always show feedback area to allow saving/confirming, 
+      // or at least make sure it's available if needed.
       feedbackArea.style.display = "block";
+      // Reset feedback buttons
+      feedbackArea.innerHTML = `
+        <p class="feedback-prompt">Was this prediction accurate?</p>
+        <div class="feedback-btns">
+            <button type="button" class="btn btn-primary btn-pill btn-sm" id="yesFeedbackBtn">Yes</button>
+            <button type="button" class="btn btn-outline btn-pill btn-sm" id="noFeedbackBtn">No</button>
+        </div>
+      `;
+      // Re-attach listeners because we just overwrote the HTML
+      attachFeedbackListeners();
     }
 
     resultArea.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -351,38 +382,42 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-yesBtn.addEventListener("click", async () => {
-  const payload = getFormPayload();
-  
-  yesBtn.disabled = true;
-  noBtn.disabled = true;
-  yesBtn.textContent = "Saving…";
+function attachFeedbackListeners() {
+    const yes = document.getElementById("yesFeedbackBtn");
+    const no = document.getElementById("noFeedbackBtn");
+    if (!yes || !no) return;
 
-  try {
-    await postJson("/api/feedback", { ...payload, feedback: "Yes" });
-    feedbackArea.innerHTML = `<div class="resultLine ok">Saved. Thank you — your feedback helps improve the AI.</div>`;
-  } catch (err) {
-    yesBtn.disabled = false;
-    noBtn.disabled = false;
-    yesBtn.textContent = "Yes";
-    setAlert("Failed to save feedback: " + err.message);
-  }
-});
+    yes.addEventListener("click", async () => {
+      yes.disabled = true;
+      no.disabled = true;
+      yes.textContent = "Saving…";
+      try {
+        await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "Yes" });
+        feedbackArea.innerHTML = `<div class="resultLine ok">Saved. Thank you — your feedback helps improve the AI.</div>`;
+      } catch (err) {
+        yes.disabled = false;
+        no.disabled = false;
+        yes.textContent = "Yes";
+        setAlert("Failed to save: " + err.message);
+      }
+    });
 
-noBtn.addEventListener("click", async () => {
-  const payload = getFormPayload();
-  
-  yesBtn.disabled = true;
-  noBtn.disabled = true;
-  noBtn.textContent = "Saving…";
+    no.addEventListener("click", async () => {
+      yes.disabled = true;
+      no.disabled = true;
+      no.textContent = "Saving…";
+      try {
+        await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "No" });
+        feedbackArea.innerHTML = `<div class="resultLine ok">Noted — we'll use your feedback to improve.</div>`;
+      } catch (err) {
+        yes.disabled = false;
+        no.disabled = false;
+        no.textContent = "No";
+        setAlert("Failed to save: " + err.message);
+      }
+    });
+}
 
-  try {
-    await postJson("/api/feedback", { ...payload, feedback: "No" });
-    feedbackArea.innerHTML = `<div class="resultLine ok">Noted — we'll use your feedback to improve future predictions.</div>`;
-  } catch (err) {
-    yesBtn.disabled = false;
-    noBtn.disabled = false;
-    noBtn.textContent = "No";
-    setAlert("Failed to save feedback: " + err.message);
-  }
-});
+
+// End of app.js
+

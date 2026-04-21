@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.vscode/
+.idea/
+*.log
+saved_model/*.npz

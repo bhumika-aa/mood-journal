@@ -1439,6 +1439,22 @@ textarea:focus {
   gap: 24px;
 }
 
+@media (max-width: 992px) {
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-pill {
+  padding: 8px 24px;
+  cursor: pointer;
+}
+
+.filter-pill:active {
+  transform: scale(0.95);
+}
+
+
 /* Make certain cards span full width */
 .streak-card, .charts-card, .trusted-card {
   grid-column: 1 / -1;
@@ -1505,9 +1521,10 @@ textarea:focus {
 }
 
 .streak-day-icon.checked {
-  background: var(--forest);
-  color: white;
-  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.3);
+  background: #fff;
+  border: 1px solid #fed7aa;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 8px rgba(251, 146, 60, 0.2);
 }
 
 .streak-day-icon.empty {
@@ -1634,6 +1651,27 @@ textarea:focus {
   gap: 6px;
 }
 
+.cal-nav {
+  background: var(--sage-light);
+  color: var(--forest);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+
+.cal-nav:hover {
+  background: var(--forest);
+  color: #fff;
+}
+
+
 .cal-day {
   aspect-ratio: 1;
   display: flex;
@@ -1653,7 +1691,14 @@ textarea:focus {
   cursor: default;
 }
 
+.cal-day.today-highlight {
+  border: 2px solid var(--forest) !important;
+  box-shadow: 0 0 10px rgba(45, 90, 39, 0.2);
+  font-weight: 700;
+}
+
 .cal-day:not(.empty):hover {
+
   transform: scale(1.1);
   border-color: var(--sage);
   z-index: 10;
@@ -1680,9 +1725,11 @@ textarea:focus {
   z-index: 20;
 }
 
-.mood-bg-good { background: #bbf7d0; color: #166534; font-weight: bold; border: 1px solid #86efac; }
-.mood-bg-fine { background: #fef08a; color: #854d0e; font-weight: bold; border: 1px solid #fde047; }
-.mood-bg-bad  { background: #fed7aa; color: #9a3412; font-weight: bold; border: 1px solid #fdba74; }
+.mood-bg-awesome { background: #86efac; color: #064e3b; font-weight: bold; border: 1px solid #4ade80; }
+.mood-bg-good    { background: #bbf7d0; color: #166534; font-weight: bold; border: 1px solid #86efac; }
+.mood-bg-fine    { background: #fef08a; color: #854d0e; font-weight: bold; border: 1px solid #fde047; }
+.mood-bg-bad     { background: #fed7aa; color: #9a3412; font-weight: bold; border: 1px solid #fdba74; }
+.mood-bg-terrible { background: #fca5a5; color: #7f1d1d; font-weight: bold; border: 1px solid #f87171; }
 
 /* Emotional Insights details */
 .insight-stats {
@@ -1792,3 +1839,51 @@ textarea:focus {
   box-shadow: 0 4px 12px rgba(45, 90, 39, 0.2);
 }
 
+
+/* Confidence Comparison */
+.confidence-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 20px;
+  background: #f8faf8;
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+}
+
+.conf-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conf-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.conf-bar-bg {
+  height: 10px;
+  background: var(--border-light);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.conf-bar {
+  height: 100%;
+  background: var(--forest);
+  border-radius: var(--radius-pill);
+  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.conf-bar.nb {
+  background: #D97706; /* Terracotta style */
+}
+
+.conf-val {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+}

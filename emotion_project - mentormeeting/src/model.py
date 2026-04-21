@@ -1,14 +1,10 @@
-# src/model.py
-
 import numpy as np
 
 class SoftmaxRegression:
 
     def __init__(self, input_dim, num_classes):
-        # Small random weights
+
         self.W = np.random.randn(input_dim, num_classes) * 0.01
-        
-        # Bias initialized later using class priors
         self.b = np.zeros((1, num_classes))
 
     def softmax(self, z):
@@ -87,3 +83,60 @@ class SoftmaxRegression:
         probs = self.softmax(z)
         preds = np.argmax(probs, axis=1)
         return preds, probs
+
+
+class NaiveBayes:
+    """
+    Multinomial Naive Bayes implemented from scratch for TF-IDF features.
+    """
+
+    def __init__(self, num_classes, alpha=1.0):
+        self.num_classes = num_classes
+        self.alpha = alpha
+        self.class_priors = None
+        self.feature_probs = None
+
+    def train(self, X, y):
+        """
+        Train the Naive Bayes model using smoothing.
+        """
+        n_samples, n_features = X.shape
+        self.class_priors = np.zeros(self.num_classes)
+        # feature_probs[c][i] = P(feature i | class c)
+        self.feature_probs = np.zeros((self.num_classes, n_features))
+
+        for c in range(self.num_classes):
+            X_c = X[y == c]
+            # Prior probability P(c)
+            self.class_priors[c] = (X_c.shape[0] + self.alpha) / (n_samples + self.alpha * self.num_classes)
+            
+            # Sum of features for class c
+            # With TF-IDF, we sum the scores instead of counts
+            feature_sums = np.sum(X_c, axis=0)
+            total_sum = np.sum(feature_sums)
+            
+            # Smoothing (alpha)
+            # P(i|c) = (count(i,c) + alpha) / (total_count(c) + alpha * num_features)
+            self.feature_probs[c] = (feature_sums + self.alpha) / (total_sum + self.alpha * n_features)
+
+
+    def predict(self, X):
+        """
+        Predict using the log-sum-exp trick for numerical stability.
+        """
+        # We work in log space to avoid underflow
+        log_priors = np.log(self.class_priors)
+        log_feature_probs = np.log(self.feature_probs)
+        
+        # log P(c|X) proportional to log P(c) + sum(x_i * log P(i|c))
+        # This is equivalent to X dot log_feature_probs.T + log_priors
+        log_likelihoods = np.dot(X, log_feature_probs.T) + log_priors
+        
+        # Class with highest log likelihood
+        preds = np.argmax(log_likelihoods, axis=1)
+        
+        # Convert log likelihoods to probabilities for comparison/confidence
+        exp_l = np.exp(log_likelihoods - np.max(log_likelihoods, axis=1, keepdims=True))
+        probs = exp_l / np.sum(exp_l, axis=1, keepdims=True)
+        
+        return preds, probs

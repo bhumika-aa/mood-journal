@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Load data embedded from backend
   const dataScript = document.getElementById("reportsData");
-  let reportsData = { distribution: {}, history: [], trusted_contact: null, current_days: 30 };
+  let reportsData = { distribution: {}, history: [], trusted_contact: null, current_days: 1 };
   
   try {
     if (dataScript) {
@@ -11,12 +11,13 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Failed to parse reports data", e);
   }
 
+
   // Pre-fill Trusted Contact
   if (reportsData.trusted_contact) {
     document.getElementById("trustedEmail").value = reportsData.trusted_contact;
   }
 
-  const { distribution, history, current_days } = reportsData;
+  const { distribution, history, calendar_history, current_days } = reportsData;
 
   // 1. Time Filter Handling
   const filterPills = document.querySelectorAll(".filter-pill");
@@ -55,20 +56,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. Calendar View logic
   window.currentMonthOffset = 0;
-  initCalendar(history);
+  initCalendar(calendar_history);
 
   const prevBtn = document.getElementById("prevMonthBtn");
   const nextBtn = document.getElementById("nextMonthBtn");
   if (prevBtn && nextBtn) {
+    // Add text if icons are missing
+    if (!prevBtn.innerHTML) prevBtn.innerHTML = "‹";
+    if (!nextBtn.innerHTML) nextBtn.innerHTML = "›";
+
     prevBtn.addEventListener("click", () => {
       window.currentMonthOffset -= 1;
-      initCalendar(history);
+      initCalendar(calendar_history);
     });
     nextBtn.addEventListener("click", () => {
       window.currentMonthOffset += 1;
-      initCalendar(history);
+      initCalendar(calendar_history);
     });
   }
+
 
   // 4. Emotional Insights
   generateInsights(distribution, history);
@@ -238,7 +244,13 @@ function initCalendar(history) {
     dayDiv.textContent = day;
 
     const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dateObj = new Date(year, month, day);
     
+    // Highlight today
+    if (dateObj.toDateString() === now.toDateString()) {
+      dayDiv.classList.add('today-highlight');
+    }
+
     if (historyByDate[dateStr]) {
       // Find avg or worst/best mood. Let's just take the first entry of the day
       const primaryEntry = historyByDate[dateStr][0];
@@ -252,6 +264,7 @@ function initCalendar(history) {
     }
 
     container.appendChild(dayDiv);
+
   }
 
   // Simple streak calc backward from today
@@ -287,7 +300,7 @@ function initCalendar(history) {
 
       const iconDiv = document.createElement('div');
       iconDiv.className = `streak-day-icon ${isLogged ? 'checked' : 'empty'}`;
-      iconDiv.textContent = isLogged ? '' : '';
+      iconDiv.textContent = isLogged ? '🔥' : '';
 
       const labelDiv = document.createElement('div');
       labelDiv.className = `streak-day-label ${isToday ? 'today' : ''}`;

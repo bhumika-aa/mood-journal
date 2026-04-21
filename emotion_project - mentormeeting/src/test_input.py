@@ -26,11 +26,8 @@ def main():
         result = analyze_journal(text, user_mood)
 
         print("\nResult:")
-
-        # =========================
-        # 🔥 SMART OUTPUT
-        # =========================
-
+        
+        # SMART OUTPUT
         if result["predicted_emotion"] == "Mixed/Unclear":
             print("We couldn't detect a strong emotion today.")
             print("You might be feeling neutral or balanced.")

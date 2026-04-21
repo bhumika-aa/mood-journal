@@ -10,13 +10,16 @@ from pathlib import Path
 from typing import Any
 
 import nltk
-from flask import Flask, jsonify, render_template, request, session, redirect, url_for
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import (
     init_db, insert_feedback, db_available, 
     get_activities_by_emotion, get_all_activities,
     get_user_mood_distribution, get_user_mood_history,
-    save_trusted_contact, get_trusted_contact, check_negative_streak
+    save_trusted_contact, get_trusted_contact, check_negative_streak,
+    get_user_by_email, create_user, update_feedback,
+    get_filtered_history, toggle_favourite
 )
 
 
@@ -103,25 +106,51 @@ def activities_page():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        # Mock login: accept any email/password
-        session["logged_in"] = True
-        session["user_id"] = 1 # mocked user_id
-        email = request.form.get("email", "")
-        # Derive a display name from the email prefix
-        session["username"] = email.split("@")[0].capitalize() if email else "there"
-        return redirect(url_for("dashboard"))
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        
+        if not email or not password:
+            flash("Please provide both email and password.", "error")
+            return render_template("auth.html", mode="login")
+            
+        user = get_user_by_email(email)
+        if user and check_password_hash(user["password_hash"], password):
+            session["logged_in"] = True
+            session["user_id"] = user["id"]
+            session["username"] = user["name"].split()[0] if user["name"] else "there"
+            return redirect(url_for("dashboard"))
+        else:
+            flash("Invalid email or password.", "error")
+            
     return render_template("auth.html", mode="login")
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        # Mock registration: accept any inputs
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        
+        if not (first_name and last_name and email and password):
+            flash("All fields are required.", "error")
+            return render_template("auth.html", mode="register")
+            
+        if get_user_by_email(email):
+            flash("Email already registered. Please log in.", "error")
+            return render_template("auth.html", mode="register")
+            
+        full_name = f"{first_name} {last_name}".strip()
+        pwd_hash = generate_password_hash(password)
+        
+        user_id = create_user(email, full_name, pwd_hash)
+        
         session["logged_in"] = True
-        session["user_id"] = 1 # mocked user_id
-        name = request.form.get("name", "")
-        session["username"] = name.strip().split()[0].capitalize() if name.strip() else "there"
+        session["user_id"] = user_id
+        session["username"] = first_name
         return redirect(url_for("dashboard"))
+        
     return render_template("auth.html", mode="register")
 
 
@@ -173,21 +202,41 @@ def api_analyze():
 
     # Map general 'predicted_emotion' or 'predicted_mood' to Activity tag (Sad, Angry, Anxious, Happy)
     target_tag = ""
-    # Simplified mapping
-    if predicted_emotion in ["Sad", "Disgusted", "Grief"]:
+    # Simplified mapping using exact strings from the model's EMOTION_NAMES
+    if predicted_emotion in ["Sadness", "Sad", "Disgusted", "Grief"]:
         target_tag = "Sad"
-    elif predicted_emotion in ["Angry", "Annoyed", "Frustrated"]:
+    elif predicted_emotion in ["Anger", "Angry", "Annoyed", "Frustrated"]:
         target_tag = "Angry"
-    elif predicted_emotion in ["Anxious", "Scared", "Panic"]:
+    elif predicted_emotion in ["Fear", "Anxious", "Scared", "Panic"]:
         target_tag = "Anxious"
-    elif predicted_emotion in ["Happy", "Joyful", "Loved", "Relieved", "Grateful"] or predicted_mood in ["Awesome", "Good"]:
+    elif predicted_emotion in ["Joy", "Happy", "Joyful", "Love", "Loved", "Relieved", "Grateful", "Surprise"] or predicted_mood in ["Awesome", "Good"]:
         target_tag = "Happy"
     elif predicted_mood in ["Bad", "Terrible"]:
         target_tag = "Sad" # fallback
 
+
     recommendations = []
     if target_tag:
         recommendations = get_activities_by_emotion(target_tag)
+
+    # Automatically save the journal entry during analysis
+    journal_id = None
+    if db_available():
+        journal_id = insert_feedback(
+            user_id=session.get("user_id"),
+            selected_mood=str(selected_mood),
+            selected_secondary_emotion=str(selected_secondary_emotion) if selected_secondary_emotion else None,
+            selected_cause=str(selected_cause) if selected_cause else None,
+            journal_text=str(journal_text),
+            predicted_mood=str(predicted_mood) if predicted_mood else None,
+            predicted_emotion=str(predicted_emotion) if predicted_emotion else None,
+            predicted_secondary_emotion=str(result.get("secondary_emotion")) if result.get("secondary_emotion") else None,
+            confidence=float(confidence) if confidence is not None else None,
+            is_match=is_match,
+            feedback=None, # To be updated via feedback API if user clicks
+            risk_level=result.get("risk_level"),
+            matched_phrases=result.get("matched_phrases") or [],
+        )
 
     return jsonify(
         {
@@ -198,72 +247,26 @@ def api_analyze():
             "meta": {
                 "selectedSecondaryEmotion": selected_secondary_emotion,
                 "selectedCause": selected_cause,
+                "journalId": journal_id
             },
             "recommendations": recommendations,
         }
     )
 
 
-@app.post("/api/feedback")
+@app.route("/api/feedback", methods=["POST"])
 def api_feedback():
-    if not db_available():
-        return _json_error(
-            "MySQL is not configured (set MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE).",
-            500,
-        )
-
     payload: dict[str, Any] = request.get_json(silent=True) or {}
-
-    selected_mood = payload.get("selectedMood")
-    selected_secondary_emotion = payload.get("selectedSecondaryEmotion")
-    selected_cause = payload.get("selectedCause")
-    journal_text = payload.get("journalText")
+    journal_id = payload.get("journalId")
     feedback = payload.get("feedback")  # "Yes" | "No"
 
+    if not journal_id:
+        return _json_error("journalId is required")
     if feedback not in ("Yes", "No"):
         return _json_error("feedback must be 'Yes' or 'No'")
-    if not selected_mood:
-        return _json_error("selectedMood is required")
-    if not journal_text or not str(journal_text).strip():
-        return _json_error("journalText is required")
 
-    # Re-analyze to keep DB consistent with the algorithm output.
-    result = ANALYZE_JOURNAL(str(journal_text), str(selected_mood))
-
-    predicted_mood = result.get("predicted_mood")
-    predicted_emotion = result.get("predicted_emotion")
-    predicted_secondary_emotion = result.get("secondary_emotion")
-    confidence = result.get("confidence")
-    POSITIVE_MOODS = {"Awesome", "Good"}
-    NEUTRAL_MOODS = {"Fine"}
-    NEGATIVE_MOODS = {"Bad", "Terrible"}
-
-    is_match = (
-        predicted_mood == selected_mood
-        or (predicted_mood in POSITIVE_MOODS and selected_mood in POSITIVE_MOODS)
-        or (predicted_mood in NEUTRAL_MOODS and selected_mood in NEUTRAL_MOODS)
-        or (predicted_mood in NEGATIVE_MOODS and selected_mood in NEGATIVE_MOODS)
-    )
-
-    insert_feedback(
-        user_id=session.get("user_id", 1), # mock user id
-        selected_mood=str(selected_mood),
-        selected_secondary_emotion=(
-            str(selected_secondary_emotion) if selected_secondary_emotion else None
-        ),
-        selected_cause=str(selected_cause) if selected_cause else None,
-        journal_text=str(journal_text),
-        predicted_mood=str(predicted_mood) if predicted_mood else None,
-        predicted_emotion=str(predicted_emotion) if predicted_emotion else None,
-        predicted_secondary_emotion=(
-            str(predicted_secondary_emotion) if predicted_secondary_emotion else None
-        ),
-        confidence=float(confidence) if confidence is not None else None,
-        is_match=is_match,
-        feedback=feedback,
-        risk_level=result.get("risk_level"),
-        matched_phrases=result.get("matched_phrases") or [],
-    )
+    if db_available():
+        update_feedback(journal_id, feedback)
     
     # Check for negative streak alert
     alert_triggered = False
@@ -281,11 +284,15 @@ def reports_page():
         return redirect(url_for("login"))
     
     user_id = session.get("user_id", 1)
-    # Default to 30 days visualization
+    # Default to 30 days visualization for charts
     days_filter = int(request.args.get("days", 30))
     
     distribution = get_user_mood_distribution(user_id, days_filter)
     history = get_user_mood_history(user_id, days_filter)
+    
+    # Fetch a longer history for the calendar view (e.g., last 365 days)
+    calendar_history = get_user_mood_history(user_id, 365)
+    
     trusted_contact = get_trusted_contact(user_id)
     
     # Pass data directly as JSON to be embedded in template
@@ -293,9 +300,43 @@ def reports_page():
         "reports.html", 
         distribution=distribution, 
         history=history, 
+        calendar_history=calendar_history,
         trusted_contact=trusted_contact,
         current_days=days_filter
     )
+
+
+@app.get("/history")
+def history_page():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+        
+    user_id = session.get("user_id", 1)
+    filter_type = request.args.get("filter", "today") # today, monthly, favourites
+    
+    entries = get_filtered_history(user_id, filter_type)
+    
+    return render_template(
+        "history.html",
+        entries=entries,
+        current_filter=filter_type
+    )
+
+
+@app.post("/api/toggle_favourite")
+def api_toggle_favourite():
+    if not session.get("logged_in"):
+        return _json_error("Not logged in", 401)
+        
+    payload = request.get_json(silent=True) or {}
+    journal_id = payload.get("journalId")
+    
+    if not journal_id:
+        return _json_error("journalId is required")
+        
+    new_status = toggle_favourite(journal_id)
+    return jsonify({"ok": True, "is_favourite": new_status})
+
 
 
 @app.post("/api/trusted_contact")

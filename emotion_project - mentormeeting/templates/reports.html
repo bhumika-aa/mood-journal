@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 
 <head>
@@ -22,6 +22,8 @@
       <div class="logo">MindJournal</div>
       <nav class="nav-links">
         <a href="/dashboard" class="nav-item">          <span class="text">Dashboard</span>
+        </a>
+        <a href="/history" class="nav-item">          <span class="text">History</span>
         </a>
         <a href="/activities" class="nav-item">          <span class="text">Activities</span>
         </a>
@@ -51,11 +53,12 @@
         <!-- Section 1: Time Filter -->
         <div class="time-filter-block">
           <div class="pill-group enhanced-pills" role="group" aria-label="Time Filter">
+            <button type="button" class="pill filter-pill" data-days="1">Daily</button>
             <button type="button" class="pill filter-pill" data-days="7">Weekly</button>
             <button type="button" class="pill filter-pill active" data-days="30">Monthly</button>
-            <button type="button" class="pill filter-pill" data-days="365">Yearly</button>
           </div>
         </div>
+
 
         <div class="reports-grid">
           <!-- Section 6: Streak & Consistency (Top) -->
@@ -157,10 +160,12 @@
     {
       "distribution": {{ distribution|tojson }},
       "history": {{ history|tojson }},
+      "calendar_history": {{ calendar_history|tojson }},
       "trusted_contact": {% if trusted_contact %}"{{ trusted_contact }}"{% else %}null{% endif %},
       "current_days": {{ current_days }}
     }
   </script>
+
 
   <script src="/static/js/reports.js"></script>
 </body>
