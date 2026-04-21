@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load data embedded from backend
   const dataScript = document.getElementById("reportsData");
   let reportsData = { distribution: {}, history: [], trusted_contact: null, current_days: 1 };
-  
+
   try {
     if (dataScript) {
       reportsData = JSON.parse(dataScript.textContent);
@@ -154,7 +154,7 @@ function initLineChart(history, scoreMap, colorMap) {
 
   // We want to map dates to scores. For multiple entries in a day, take average or just list them.
   // Simplifying: Just plot each entry linearly against its CreatedAt date format
-  const labels = history.map(item => new Date(item.created_at).toLocaleDateString(undefined, {month: 'short', day:'numeric'}));
+  const labels = history.map(item => new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
   const dataPoints = history.map(item => scoreMap[item.selected_mood] || 3);
 
   new Chart(ctx, {
@@ -181,8 +181,8 @@ function initLineChart(history, scoreMap, colorMap) {
           max: 6,
           ticks: {
             stepSize: 1,
-            callback: function(value) {
-              const reverseMap = {1:'Terrible', 2:'Bad', 3:'Fine', 4:'Good', 5:'Awesome'};
+            callback: function (value) {
+              const reverseMap = { 1: 'Terrible', 2: 'Bad', 3: 'Fine', 4: 'Good', 5: 'Awesome' };
               return reverseMap[value] || '';
             }
           }
@@ -198,7 +198,7 @@ function initLineChart(history, scoreMap, colorMap) {
 function initCalendar(history) {
   const container = document.getElementById('calendarDays');
   if (!container) return;
-  
+
   // Clear any existing days
   container.innerHTML = "";
 
@@ -208,7 +208,7 @@ function initCalendar(history) {
   let targetDate = new Date(now.getFullYear(), now.getMonth() + window.currentMonthOffset, 1);
   const year = targetDate.getFullYear();
   const month = targetDate.getMonth();
-  
+
   document.getElementById('calendarMonthYear').textContent = targetDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   const firstDayOfMonth = new Date(year, month, 1);
@@ -227,7 +227,7 @@ function initCalendar(history) {
   history.forEach(item => {
     const d = new Date(item.created_at);
     // adjust for local timezone matching
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     if (!historyByDate[dateStr]) {
       historyByDate[dateStr] = [];
     }
@@ -243,9 +243,9 @@ function initCalendar(history) {
     dayDiv.className = 'cal-day';
     dayDiv.textContent = day;
 
-    const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dateObj = new Date(year, month, day);
-    
+
     // Highlight today
     if (dateObj.toDateString() === now.toDateString()) {
       dayDiv.classList.add('today-highlight');
@@ -255,12 +255,12 @@ function initCalendar(history) {
       // Find avg or worst/best mood. Let's just take the first entry of the day
       const primaryEntry = historyByDate[dateStr][0];
       const mood = primaryEntry.selected_mood;
-      
+
       if (['Awesome', 'Good'].includes(mood)) dayDiv.classList.add('mood-bg-good');
       else if (mood === 'Fine') dayDiv.classList.add('mood-bg-fine');
       else if (['Bad', 'Terrible'].includes(mood)) dayDiv.classList.add('mood-bg-bad');
 
-      dayDiv.dataset.tooltip = `Mood: ${mood}\n${primaryEntry.journal_text.substring(0,20)}...`;
+      dayDiv.dataset.tooltip = `Mood: ${mood}\n${primaryEntry.journal_text.substring(0, 20)}...`;
     }
 
     container.appendChild(dayDiv);
@@ -269,12 +269,12 @@ function initCalendar(history) {
 
   // Simple streak calc backward from today
   for (let i = 0; i < 365; i++) {
-    const checkD = new Date(now.getTime() - i * 24*60*60*1000);
-    const dStr = `${checkD.getFullYear()}-${String(checkD.getMonth() + 1).padStart(2,'0')}-${String(checkD.getDate()).padStart(2,'0')}`;
+    const checkD = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dStr = `${checkD.getFullYear()}-${String(checkD.getMonth() + 1).padStart(2, '0')}-${String(checkD.getDate()).padStart(2, '0')}`;
     if (historyByDate[dStr]) {
       currentStreak++;
     } else {
-      break; 
+      break;
     }
   }
 
@@ -287,11 +287,11 @@ function initCalendar(history) {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     // Start from Sunday to Saturday of current week
     const currentDayOfWeek = now.getDay(); // 0 is Sunday
-    const sundayDate = new Date(now.getTime() - currentDayOfWeek * 24*60*60*1000);
-    
+    const sundayDate = new Date(now.getTime() - currentDayOfWeek * 24 * 60 * 60 * 1000);
+
     for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(sundayDate.getTime() + i * 24*60*60*1000);
-      const dStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2,'0')}-${String(dayDate.getDate()).padStart(2,'0')}`;
+      const dayDate = new Date(sundayDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
       const isLogged = !!historyByDate[dStr];
       const isToday = (dayDate.toDateString() === now.toDateString());
 
@@ -331,7 +331,7 @@ function generateInsights(distribution, history) {
   const positiveTotal = (distribution['Awesome'] || 0) + (distribution['Good'] || 0);
   const neutralTotal = (distribution['Fine'] || 0);
   const negTotal = (distribution['Bad'] || 0) + (distribution['Terrible'] || 0);
-  
+
   const positivity = Math.round((positiveTotal / total) * 100);
   posSpan.textContent = `${positivity}% Positive`;
 
@@ -343,7 +343,7 @@ function generateInsights(distribution, history) {
   if (negTotal > positiveTotal) {
     summaryList.innerHTML += `<li>You've experienced more challenging days this period.</li>`;
   }
-  
+
   // Smart Recommendation Logic
   if (negTotal > 0 || positivity < 50) {
     document.getElementById('reportsRecCard').style.display = "block";
