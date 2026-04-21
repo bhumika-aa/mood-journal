@@ -207,47 +207,98 @@ def insert_feedback(
     feedback: Optional[str],
     risk_level: Optional[str],
     matched_phrases: Optional[list[str]],
-) -> None:
+) -> int:
     conn = connect()
     try:
         cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO mood_journals (
-              user_id,
-              selected_mood,
-              selected_secondary_emotion,
-              selected_cause,
-              journal_text,
-              predicted_mood,
-              predicted_emotion,
-              predicted_secondary_emotion,
-              confidence,
-              is_match,
-              feedback,
-              risk_level,
-              matched_phrases
+        
+        # Nepal Timezone Check (UTC+5:45)
+        # We check if an entry exists for the current user on the same calendar day in Nepal.
+        cur.execute("""
+            SELECT id FROM mood_journals 
+            WHERE user_id = %s 
+              AND DATE(CONVERT_TZ(created_at, @@session.time_zone, '+05:45')) = DATE(CONVERT_TZ(NOW(), @@session.time_zone, '+05:45'))
+            LIMIT 1
+        """, (user_id,))
+        existing = cur.fetchone()
+
+        if existing:
+            # UPDATE existing entry for today
+            journal_id = existing[0]
+            cur.execute(
+                """
+                UPDATE mood_journals SET
+                  selected_mood = %s,
+                  selected_secondary_emotion = %s,
+                  selected_cause = %s,
+                  journal_text = %s,
+                  predicted_mood = %s,
+                  predicted_emotion = %s,
+                  predicted_secondary_emotion = %s,
+                  confidence = %s,
+                  is_match = %s,
+                  feedback = %s,
+                  risk_level = %s,
+                  matched_phrases = %s
+                WHERE id = %s
+                """,
+                (
+                    selected_mood,
+                    selected_secondary_emotion,
+                    selected_cause,
+                    journal_text,
+                    predicted_mood,
+                    predicted_emotion,
+                    predicted_secondary_emotion,
+                    confidence,
+                    1 if is_match else 0,
+                    feedback,
+                    risk_level,
+                    ",".join(matched_phrases) if matched_phrases else None,
+                    journal_id
+                )
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                user_id,
-                selected_mood,
-                selected_secondary_emotion,
-                selected_cause,
-                journal_text,
-                predicted_mood,
-                predicted_emotion,
-                predicted_secondary_emotion,
-                confidence,
-                1 if is_match else 0,
-                feedback,
-                risk_level,
-                ",".join(matched_phrases) if matched_phrases else None,
-            ),
-        )
-        conn.commit()
-        return cur.lastrowid
+            conn.commit()
+            return journal_id
+        else:
+            # INSERT new entry
+            cur.execute(
+                """
+                INSERT INTO mood_journals (
+                  user_id,
+                  selected_mood,
+                  selected_secondary_emotion,
+                  selected_cause,
+                  journal_text,
+                  predicted_mood,
+                  predicted_emotion,
+                  predicted_secondary_emotion,
+                  confidence,
+                  is_match,
+                  feedback,
+                  risk_level,
+                  matched_phrases
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    user_id,
+                    selected_mood,
+                    selected_secondary_emotion,
+                    selected_cause,
+                    journal_text,
+                    predicted_mood,
+                    predicted_emotion,
+                    predicted_secondary_emotion,
+                    confidence,
+                    1 if is_match else 0,
+                    feedback,
+                    risk_level,
+                    ",".join(matched_phrases) if matched_phrases else None,
+                ),
+            )
+            conn.commit()
+            return cur.lastrowid
     finally:
         try:
             conn.close()
@@ -406,6 +457,26 @@ def get_filtered_history(user_id: int, filter_type: str) -> list[dict[str, Any]]
         except Exception:
             pass
 
+
+
+def get_today_journal(user_id: int) -> Optional[dict[str, Any]]:
+    if not db_available():
+        return None
+    conn = connect()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""
+            SELECT * FROM mood_journals 
+            WHERE user_id = %s 
+              AND DATE(CONVERT_TZ(created_at, @@session.time_zone, '+05:45')) = DATE(CONVERT_TZ(NOW(), @@session.time_zone, '+05:45'))
+            LIMIT 1
+        """, (user_id,))
+        return cur.fetchone()
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def get_trusted_contact(user_id: int) -> Optional[str]:

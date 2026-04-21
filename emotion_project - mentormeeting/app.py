@@ -19,7 +19,7 @@ from db import (
     get_user_mood_distribution, get_user_mood_history,
     save_trusted_contact, get_trusted_contact, check_negative_streak,
     get_user_by_email, create_user, update_feedback,
-    get_filtered_history, toggle_favourite
+    get_filtered_history, toggle_favourite, get_today_journal
 )
 
 
@@ -83,8 +83,14 @@ def landing():
 def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
     username = session.get("username", "there")
-    return render_template("index.html", username=username)
+    
+    # Check if user already journaled today (Nepal Time)
+    today_entry = get_today_journal(user_id) if user_id else None
+    
+    return render_template("index.html", username=username, today_entry=today_entry)
 
 
 @app.get("/activities")

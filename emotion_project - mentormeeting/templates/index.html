@@ -193,7 +193,11 @@
     </div> <!-- End main-area -->
   </div> <!-- End app-layout -->
 
+  <script>
+    window.todayEntry = {{ today_entry|tojson|safe if today_entry else 'null' }};
+  </script>
   <script src="/static/js/app.js"></script>
 </body>
+
 
 </html>

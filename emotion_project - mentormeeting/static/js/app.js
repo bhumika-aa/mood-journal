@@ -283,7 +283,46 @@ async function postJson(url, payload) {
 startJournalingBtn.addEventListener("click", () => {
   introScreen.hidden = true;
   moodForm.hidden = false;
+  // ---- Pre-filling logic for "one entry per day" ----
+  function handlePreFill() {
+    const entry = window.todayEntry;
+    if (!entry) return;
+
+    console.log("Pre-filling today's entry:", entry);
+
+    // 1. Fill Mood
+    const moodBtn = moodGrid.querySelector(`.mood-card[data-mood="${entry.selected_mood}"]`);
+    if (moodBtn) {
+      moodBtn.click();
+    }
+
+    // 2. Fill Secondary Emotion
+    if (entry.selected_secondary_emotion) {
+      // We need to wait a bit for Step 2 chips to be generated
+      setTimeout(() => {
+        const emoChip = emotionGrid.querySelector(`.emotion-chip[data-emotion="${entry.selected_secondary_emotion}"]`);
+        if (emoChip) emoChip.click();
+      }, 100);
+    }
+
+    // 3. Fill Cause
+    if (entry.selected_cause) {
+      const causeBtn = causeGrid.querySelector(`.cause-card[data-cause="${entry.selected_cause}"]`);
+      if (causeBtn) causeBtn.click();
+    }
+
+    // 4. Fill Journal Text
+    if (entry.journal_text) {
+      journalText.value = entry.journal_text;
+      if (journalText.value.trim().length > 0) {
+        analyzeBtn.disabled = false;
+      }
+    }
+  }
+
+  // Initial set
   setStep(1);
+  handlePreFill();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
