@@ -7,16 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="/static/css/landing.css">
 </head>
 <body class="auth-page">
 
     <!-- Minimal Navbar -->
     <nav class="auth-navbar">
-        <a href="{{ url_for('landing') }}" class="logo">Mood Journal</a>
+        <a href="/" class="logo">Mood Journal</a>
         <div style="display:flex; gap:12px; align-items:center;">
             <span style="font-size:0.875rem; color:#6B7280;">Already have an account?</span>
-            <a href="{{ url_for('login') }}" class="auth-nav-action auth-nav-primary">Log In</a>
+            <a href="/login" class="auth-nav-action auth-nav-primary">Log In</a>
         </div>
     </nav>
 
@@ -28,7 +28,7 @@
             <h1 class="auth-title">Create your account</h1>
             <p class="auth-subtitle">Start understanding your emotions in minutes.</p>
 
-            <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+            <form method="POST" action="/register" class="auth-form">
                 <div class="form-row">
                     <div class="form-field">
                         <label for="first_name">First Name</label>
@@ -56,7 +56,7 @@
         </div>
 
         <p class="auth-footer-link">
-            Already have an account? <a href="{{ url_for('login') }}">Log in instead</a>
+            Already have an account? <a href="/login">Log in instead</a>
         </p>
     </main>
 

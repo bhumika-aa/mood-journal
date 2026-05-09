@@ -4,12 +4,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MindJournal – Dashboard</title>
+  <title>Mood Journal – Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
+  </style>
 </head>
 
 <body>
@@ -17,7 +18,7 @@
   <div class="app-layout">
     <!-- Sidebar navigation -->
     <aside class="sidebar">
-      <div class="logo">MindJournal</div>
+      <div class="logo">Mood Journal</div>
       <nav class="nav-links">
         <a href="/dashboard" class="nav-item active">
           <span class="text">Dashboard</span>
@@ -42,7 +43,7 @@
     <!-- Main Scrollable Area -->
     <div class="main-area">
       <header class="site-header mobile-header">
-        <span class="logo">MindJournal</span>
+        <span class="logo">Mood Journal</span>
         <a class="btn btn-urgent btn-pill" href="tel:988" title="Crisis support">Urgent support</a>
       </header>
 
@@ -51,7 +52,7 @@
         <section id="introScreen" class="intro-screen" aria-label="Welcome">
           <div class="intro-card">
             <p class="status-line" id="greetingBadge">Welcome back</p>
-            <h1 class="intro-title" id="greetingTitle">Good morning, {{ username }}!</h1>
+            <h1 class="intro-title" id="greetingTitle">Good morning!</h1>
             <p class="intro-caption">
               How are you feeling right now? Take a moment to reflect — choose your mood, pick the emotion that fits
               best, and write a few lines in your journal.
@@ -65,7 +66,7 @@
         <div id="alertBox" class="alert" style="display: none" role="alert"></div>
 
         <form id="moodForm" class="checkin-flow" hidden>
-          <div class="stepper" aria-hidden="true">
+          <div class="stepper">
             <div class="step active" data-step="1">1</div>
             <div class="step" data-step="2">2</div>
             <div class="step" data-step="3">3</div>
@@ -179,25 +180,67 @@
               <button type="button" class="btn btn-outline btn-pill feedback-btn" id="noBtn">No</button>
             </div>
           </div>
-          
-          <!-- Smart Recommendations Area -->
+
+          <!-- Recommendations Area -->
           <div id="recommendationsArea" class="recommendations-block" style="display: none">
-            <h3 class="rec-heading">Smart Recommendations</h3>
-            <p class="rec-subheading">Based on your mood, we suggest these activities to help you reflect or feel better:</p>
-            <div id="recommendationsGrid" class="rec-grid">
-               <!-- Inserted by JS -->
-            </div>
+            <h3 class="rec-heading">Recommendations</h3>
+            <p class="rec-subheading">Based on your current mood, these activities might help:</p>
+            <div id="recommendationsGrid" class="activities-grid"></div>
           </div>
         </div>
+
       </main>
     </div> <!-- End main-area -->
   </div> <!-- End app-layout -->
 
   <script>
-    window.todayEntry = {{ today_entry|tojson|safe if today_entry else 'null' }};
+    // Initial data fetch to replace Jinja2
+    async function loadDashboard() {
+      try {
+        const resp = await fetch('/api/dashboard_data');
+        const data = await resp.json();
+
+        // Check admin status
+        const userRes = await fetch('/api/user_info');
+        const userData = await userRes.json();
+        if (userData.is_admin) {
+          const navLinks = document.querySelector('.nav-links');
+          if (navLinks && ![...navLinks.querySelectorAll('a')].some(a => a.href === '/admin' || a.href.includes('/admin'))) {
+            // Add separator
+            const sep = document.createElement('div');
+            sep.style.height = '1px';
+            sep.style.background = 'rgba(255,255,255,0.1)';
+            sep.style.margin = '12px 16px';
+            navLinks.appendChild(sep);
+
+            const adminLink = document.createElement('a');
+            adminLink.href = '/admin';
+            adminLink.className = 'nav-item';
+            adminLink.innerHTML = '<span class="text">Admin Panel</span>';
+            navLinks.appendChild(adminLink);
+          }
+        }
+
+        if (typeof updateGreeting === 'function') {
+          updateGreeting(data.username || "there");
+        }
+        window.todayEntry = data.today_entry || null;
+
+        if (typeof initDashboard === 'function') {
+          initDashboard();
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      }
+    }
+
+    function initDashboard() {
+      // Any specific init logic for dashboard
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
   </script>
   <script src="/static/js/app.js"></script>
 </body>
-
 
 </html>

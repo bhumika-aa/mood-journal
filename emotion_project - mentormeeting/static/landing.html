@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Journal - AI Emotion Tracking</title>
+    <link rel="stylesheet" href="/static/css/landing.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Main Wrapper for blur effect -->
+    <div id="pageWrapper">
+        <!-- 1. Navbar -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="/" class="logo">Mood Journal</a>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="#features" class="nav-link">Why</a>
+                    <a href="#how-it-works" class="nav-link">How</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                    <div class="nav-divider"></div>
+                    <a href="javascript:void(0)" class="nav-link nav-login" id="navLoginBtn">Login</a>
+                    <a href="javascript:void(0)" class="nav-link btn-nav-signup" id="navSignupBtn">Sign Up</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 2. Hero Section -->
+        <section class="hero-section">
+            <div class="container hero-container">
+                <div class="hero-content" id="heroContent">
+                    <h1>Understand Your Emotions Through Journaling</h1>
+                    <p class="hero-subtitle">
+                        Transform your daily thoughts into actionable insights. Our advanced AI detects underlying emotions in your writing to help you discover patterns and improve your mental wellbeing.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="javascript:void(0)" class="btn-primary btn-large open-signup">Start Journaling</a>
+                        <a href="#how-it-works" class="btn-secondary btn-large">Learn More</a>
+                    </div>
+                </div>
+                <div class="hero-image" id="heroImageContainer">
+                    <!-- Hero Illustration -->
+                    <div id="heroIllustration" class="hero-image-inner">
+                        <img src="/static/img/hero_journal.png" alt="Person journaling illustration">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Features Section -->
+        <section id="features" class="features-section bg-lavender-light">
+            <div class="container">
+                <h2 class="section-title text-center">Why Mood Journal?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon icon-blue">
+                            <img src="/static/img/Ai%20emotion%20detection.jpeg" alt="AI Emotion Detection" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        </div>
+                        <h3>AI Emotion Detection</h3>
+                        <p>Our intelligent algorithms analyze your text to uncover subtle emotional nuances beyond basic sentimence.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon icon-green">
+                            <img src="/static/img/mood%20tracking.jpeg" alt="Mood Tracking" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        </div>
+                        <h3>Mood Tracking & Insights</h3>
+                        <p>Visualize your emotional trajectory over time with beautiful, easy-to-understand charts.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon icon-purple">
+                            <img src="/static/img/Daily%20Journaling.jpeg" alt="Daily Journaling" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        </div>
+                        <h3>Daily Journaling</h3>
+                        <p>A safe, private, and distraction-free space to document your daily thoughts and feelings.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. How It Works Section -->
+        <section id="how-it-works" class="how-it-works-section">
+            <div class="container">
+                <h2 class="section-title text-center">How It Works</h2>
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h4>Select Your Mood</h4>
+                        <p>Start by doing a quick check-in on your overall feeling.</p>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h4>Write Your Journal</h4>
+                        <p>Express your daily experiences freely in our secure editor.</p>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h4>AI Analyzes Emotions</h4>
+                        <p>We process your entry to detect hidden emotional signals.</p>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <h4>View Insights & Patterns</h4>
+                        <p>Review the breakdown and discover your emotional trends.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Insight Section -->
+        <section class="insight-section bg-cream">
+            <div class="container insight-container">
+                <div class="insight-graph">
+                    <div class="mock-card">
+                        <div class="mock-header">AI Analysis Result</div>
+                        <div class="progress-bar-group">
+                            <div class="progress-label"><span>Sadness</span><span>50%</span></div>
+                            <div class="progress-track"><div class="progress-fill fill-blue" style="width: 50%;"></div></div>
+                        </div>
+                        <div class="progress-bar-group">
+                            <div class="progress-label"><span>Joy</span><span>25%</span></div>
+                            <div class="progress-track"><div class="progress-fill fill-green" style="width: 25%;"></div></div>
+                        </div>
+                        <div class="progress-bar-group">
+                            <div class="progress-label"><span>Anxiety</span><span>15%</span></div>
+                            <div class="progress-track"><div class="progress-fill fill-purple" style="width: 15%;"></div></div>
+                        </div>
+                        <div class="progress-bar-group">
+                            <div class="progress-label"><span>Anger</span><span>10%</span></div>
+                            <div class="progress-track"><div class="progress-fill fill-terracotta" style="width: 10%;"></div></div>
+                        </div>
+                        <div class="mock-footer">
+                            <p>Do you agree with this analysis?</p>
+                            <div class="mock-actions">
+                                <span class="btn-outline-sm">Yes</span>
+                                <span class="btn-outline-sm">Adjust</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="insight-content">
+                    <h2 class="section-title">Deep Dive Into Mixed Emotions</h2>
+                    <p>Human feelings are rarely one-dimensional. Our robust AI goes beyond simple "good" or "bad" to detect complex, mixed emotional states.</p>
+                    <ul class="insight-list">
+                        <li><strong>Detailed Breakdowns:</strong> See the exact percentages of primary and secondary emotions.</li>
+                        <li><strong>Context Aware:</strong> The model understands context, not just keywords.</li>
+                        <li><strong>You Are in Control:</strong> You can always confirm or adjust the AI's estimation to improve accuracy.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Call to Action Section -->
+        <section class="cta-section">
+            <div class="container text-center">
+                <h2>Start your emotional journey today</h2>
+                <p>Join thousands improving their self-awareness through intelligent journaling.</p>
+                <a href="javascript:void(0)" class="btn-primary btn-large cta-btn open-signup">Sign Up Now</a>
+            </div>
+        </section>
+
+        <!-- 7. Footer -->
+        <footer class="footer" id="contact">
+            <div class="container footer-container">
+                <div class="footer-brand">
+                    <span class="logo">Mood Journal</span>
+                    <p>A private, intelligent space for your mind.</p>
+                </div>
+                <div class="footer-tag">
+                    <span>Built with AI Emotion Detection </span>
+                </div>
+            </div>
+        </footer>
+    </div> <!-- End pageWrapper -->
+
+    <!-- Auth Overlay (Fixed Modal) -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="container auth-overlay-flex">
+            <div id="heroAuthCard" class="auth-hero-slider-wrap" style="position: relative;">
+                <button class="auth-hero-close" id="closeAuth">&times;</button>
+                <div class="auth-hero-panels" id="authPanels">
+                    <!-- Login Panel -->
+                    <div class="auth-hero-panel">
+                        <div class="auth-hero-form-side">
+                            <div class="auth-hero-header">
+                                <h3>Welcome back</h3>
+                                <p>Log in to your account</p>
+                            </div>
+                            <form action="/login" method="POST" class="auth-hero-form">
+                                <div class="auth-hero-field">
+                                    <label for="login-email">Email</label>
+                                    <input type="email" id="login-email" name="email" required placeholder="abc@gmail.com">
+                                </div>
+                                <div class="auth-hero-field">
+                                    <label for="login-pass">Password</label>
+                                    <div class="password-input-wrap">
+                                        <input type="password" id="login-pass" name="password" required placeholder="password">
+                                        <button type="button" class="password-toggle" onclick="togglePassword('login-pass')">
+                                            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="auth-hero-btn">Log In</button>
+                            </form>
+                        </div>
+                        <div class="auth-hero-info-side">
+                            <h4>New here?</h4>
+                            <p>Start your journey with us</p>
+                            <button class="btn-switch-hero" id="switchToSignup">Create Account</button>
+                        </div>
+                    </div>
+
+                    <!-- Signup Panel -->
+                    <div class="auth-hero-panel">
+                        <div class="auth-hero-form-side">
+                            <div class="auth-hero-header">
+                                <h3>Create Account</h3>
+                                <p>Join Mood Journal today</p>
+                            </div>
+                            <form action="/register" method="POST" class="auth-hero-form">
+                                <div class="auth-hero-field">
+                                    <label for="reg-fname">First Name</label>
+                                    <input type="text" id="reg-fname" name="first_name" required placeholder="Mika">
+                                </div>
+                                <div class="auth-hero-field">
+                                    <label for="reg-lname">Last Name</label>
+                                    <input type="text" id="reg-lname" name="last_name" required placeholder="Neupane">
+                                </div>
+                                <div class="auth-hero-field">
+                                    <label for="reg-email">Email</label>
+                                    <input type="email" id="reg-email" name="email" required placeholder="abc@gmail.com">
+                                </div>
+                                <div class="auth-hero-field">
+                                    <label for="reg-pass">Password</label>
+                                    <div class="password-input-wrap">
+                                        <input type="password" id="reg-pass" name="password" required placeholder="password">
+                                        <button type="button" class="password-toggle" onclick="togglePassword('reg-pass')">
+                                            <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="auth-hero-btn">Sign Up</button>
+                            </form>
+                        </div>
+                        <div class="auth-hero-info-side">
+                            <h4>Already a member?</h4>
+                            <p>Welcome back, we missed you</p>
+                            <button class="btn-switch-hero" id="switchToLogin">Log In</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+
+    <script>
+        const heroIllustration = document.getElementById('heroIllustration');
+        const heroAuthCard = document.getElementById('heroAuthCard');
+        const authOverlay = document.getElementById('authOverlay');
+        const authPanels = document.getElementById('authPanels');
+        const closeAuth = document.getElementById('closeAuth');
+        
+        // Elements to blur
+        const heroContent = document.getElementById('heroContent');
+        const navbar = document.querySelector('.navbar');
+        const sectionsToBlur = document.querySelectorAll('.features-section, .how-it-works-section, .insight-section, .cta-section, .footer, #heroImageContainer');
+
+        const navLoginBtn = document.getElementById('navLoginBtn');
+        const navSignupBtn = document.getElementById('navSignupBtn');
+        const switchToSignup = document.getElementById('switchToSignup');
+        const switchToLogin = document.getElementById('switchToLogin');
+        const openSignupButtons = document.querySelectorAll('.open-signup');
+
+        let isAuthOpen = false;
+
+        function openHeroAuth(mode = 'login') {
+            isAuthOpen = true;
+            // Show overlay
+            authOverlay.classList.add('active');
+            
+            // Hide illustration to match previous behavior
+            heroIllustration.style.visibility = 'hidden';
+            
+            // Apply blur to content, but NOT the navbar
+            heroContent.classList.add('blur-bg');
+            sectionsToBlur.forEach(s => s.classList.add('blur-bg'));
+            
+            if (mode === 'signup') {
+                authPanels.classList.add('show-signup');
+            } else {
+                authPanels.classList.remove('show-signup');
+            }
+        }
+
+        function closeHeroAuth() {
+            isAuthOpen = false;
+            // Hide overlay
+            authOverlay.classList.remove('active');
+            
+            // Show illustration again
+            heroIllustration.style.visibility = 'visible';
+            
+            // Remove blur
+            heroContent.classList.remove('blur-bg');
+            navbar.classList.remove('blur-bg');
+            sectionsToBlur.forEach(s => s.classList.remove('blur-bg'));
+        }
+
+        navLoginBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            openHeroAuth('login');
+        });
+        
+        navSignupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            openHeroAuth('signup');
+        });
+        
+        openSignupButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openHeroAuth('signup');
+            });
+        });
+
+        closeAuth.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeHeroAuth();
+        });
+        
+        switchToSignup.addEventListener('click', (e) => {
+            e.preventDefault();
+            authPanels.classList.add('show-signup');
+        });
+
+        switchToLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            authPanels.classList.remove('show-signup');
+        });
+
+        // Close when clicking outside the auth card
+        document.addEventListener('click', (e) => {
+            if (isAuthOpen) {
+                const isClickInside = heroAuthCard.contains(e.target);
+                if (!isClickInside) {
+                    closeHeroAuth();
+                }
+            }
+        });
+
+        // Prevent closing when clicking inside the card
+        heroAuthCard.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const btn = input.nextElementSibling;
+            const eyeIcon = btn.querySelector('.icon-eye');
+            const eyeOffIcon = btn.querySelector('.icon-eye-off');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.style.display = 'none';
+                eyeOffIcon.style.display = 'block';
+            } else {
+                input.type = 'password';
+                eyeIcon.style.display = 'block';
+                eyeOffIcon.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

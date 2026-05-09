@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MindJournal  Reports</title>
+  <title>Mood Journal  Reports</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
@@ -19,7 +19,7 @@
   <div class="app-layout">
     <!-- Sidebar navigation -->
     <aside class="sidebar">
-      <div class="logo">MindJournal</div>
+      <div class="logo">Mood Journal</div>
       <nav class="nav-links">
         <a href="/dashboard" class="nav-item">          <span class="text">Dashboard</span>
         </a>
@@ -39,15 +39,13 @@
     <!-- Main Scrollable Area -->
     <div class="main-area">
       <header class="site-header mobile-header">
-        <span class="logo">MindJournal</span>
+        <span class="logo">Mood Journal</span>
         <a class="btn btn-urgent btn-pill" href="tel:988" title="Crisis support">Urgent support</a>
       </header>
 
       <main class="page reports-page">
-        <!-- Reports Header -->
         <header class="reports-header section-header">
           <h1 class="reports-title">Insights/Reports</h1>
-          <p class="reports-caption">Understand how youve been feeling over time</p>
         </header>
 
         <!-- Section 1: Time Filter -->
@@ -92,6 +90,20 @@
                   <!-- JS populated -->
                   <li>Collect more data to generate insights.</li>
                 </ul>
+
+                <div class="emotion-balance-small" style="margin-top: 24px; width: 100%;">
+                    <h3>Emotional Balance</h3>
+                    <div class="insight-stats">
+                        <div class="stat-box">
+                            <span class="stat-title">Most Frequent</span>
+                            <span class="stat-value" id="frequentEmotionText">---</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-title">Positivity Rate</span>
+                            <span class="stat-value" id="positivityRateText">---</span>
+                        </div>
+                    </div>
+                </div>
               </div>
             </div>
           </div>
@@ -113,25 +125,10 @@
             </div>
           </div>
 
-          <!-- Section 4: Emotional Insights Details -->
-          <div class="card insight-card">
-            <h3>Emotional Balance </h3>
-            <div class="insight-stats">
-              <div class="stat-box">
-                <span class="stat-title">Most Frequent</span>
-                <span class="stat-value" id="frequentEmotionText">---</span>
-              </div>
-              <div class="stat-box">
-                <span class="stat-title">Positivity Rate</span>
-                <span class="stat-value" id="positivityRateText">---</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 5: Smart Recommendations -->
-          <div class="card recommendations-card" style="display: none" id="reportsRecCard">
-            <h3>Smart Recommendations </h3>
-            <p>Based on your current mood trends, these activities might help:</p>
+          <!-- Section 4: Now Recommendations -->
+          <div class="card insight-card" id="reportsRecCard" style="display: none">
+            <h3>Recommendations</h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px;">Based on your current mood trends, these activities might help:</p>
             <ul id="reportsRecList" class="rec-list-styled">
                <!-- Populated by JS -->
             </ul>
@@ -156,14 +153,46 @@
   </div> <!-- End app-layout -->
 
   <!-- Pass server data safely -->
-  <script id="reportsData" type="application/json">
-    {
-      "distribution": {{ distribution|tojson }},
-      "history": {{ history|tojson }},
-      "calendar_history": {{ calendar_history|tojson }},
-      "trusted_contact": {% if trusted_contact %}"{{ trusted_contact }}"{% else %}null{% endif %},
-      "current_days": {{ current_days }}
+  <script>
+    async function initReports() {
+        // Check admin status
+        try {
+            const userRes = await fetch('/api/user_info');
+            const userData = await userRes.json();
+            if (userData.is_admin) {
+                const navLinks = document.querySelector('.nav-links');
+                if (navLinks && ![...navLinks.querySelectorAll('a')].some(a => a.href.includes('/admin'))) {
+                    const sep = document.createElement('div');
+                    sep.style.height = '1px';
+                    sep.style.background = 'rgba(255,255,255,0.1)';
+                    sep.style.margin = '12px 16px';
+                    navLinks.appendChild(sep);
+
+                    const adminLink = document.createElement('a');
+                    adminLink.href = '/admin';
+                    adminLink.className = 'nav-item';
+                    adminLink.innerHTML = '<span class="text">Admin Panel</span>';
+                    navLinks.appendChild(adminLink);
+                }
+            }
+        } catch(e) {}
+
+        try {
+            const resp = await fetch('/api/reports_data');
+            const data = await resp.json();
+            
+            // Set data for reports.js
+            window.reportsData = data;
+            
+            // Trigger reports.js initialization if it has one
+            if (typeof renderReports === 'function') {
+                renderReports(data);
+            }
+        } catch (err) {
+            console.error('Failed to load reports data:', err);
+        }
     }
+    document.addEventListener('DOMContentLoaded', initReports);
   </script>
 
 

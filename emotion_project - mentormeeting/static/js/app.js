@@ -30,8 +30,8 @@ const feedbackQuestion = document.getElementById("feedbackQuestion");
 const yesBtn = document.getElementById("yesBtn");
 const noBtn = document.getElementById("noBtn");
 
-// ---- Time-based greeting (title only, badge stays static) ----
-(function setGreeting() {
+// ---- Time-based greeting ----
+function updateGreeting(username = "there") {
   const hour = new Date().getHours();
   let period = "morning";
   if (hour >= 12 && hour < 17) period = "afternoon";
@@ -39,12 +39,11 @@ const noBtn = document.getElementById("noBtn");
 
   const title = document.getElementById("greetingTitle");
   if (title) {
-    // Extract the name part rendered by Flask (everything after the comma)
-    const current = title.textContent.trim();
-    const namePart = current.includes(",") ? current.split(",").slice(1).join(",").trim() : "there!";
-    title.textContent = `Good ${period}, ${namePart}`;
+    title.textContent = `Good ${period}, ${username}!`;
   }
-})();
+}
+
+
 
 
 const EMOTIONS_BY_MOOD = {
@@ -72,8 +71,7 @@ function setStep(panelNumber) {
   panels.forEach((p) => {
     const n = p.getAttribute("data-panel");
     const isActive = n === String(panelNumber);
-    // Remove the inline display style if it's there
-    p.style.display = ""; 
+    p.style.display = "";
     p.classList.toggle("active-panel", isActive);
   });
 
@@ -82,6 +80,9 @@ function setStep(panelNumber) {
     const n = s.getAttribute("data-step");
     s.classList.toggle("active", n === String(panelNumber));
   });
+
+  // Save progress to localStorage
+  localStorage.setItem("journalStep", panelNumber);
 }
 
 function clearMoodSelection() {
@@ -119,6 +120,7 @@ function renderEmotionGrid() {
       btn.classList.add("selected");
       selectedSecondaryInput.value = label;
       toStep3Btn.disabled = false;
+      localStorage.setItem("journalEmotion", label);
     });
     emotionGrid.appendChild(btn);
   });
@@ -138,33 +140,36 @@ function formatConfidencePercent(p) {
   return `${Math.round(p)}%`;
 }
 
-function renderResult(analysis, isMatch, selectedMood, recommendations = []) {
+function renderResult(analysis, isMatch, selectedMood, recommendations = [], payload = null) {
   const predictedMood    = analysis.predicted_mood;
   const predictedEmotion = analysis.predicted_emotion;
   const secondaryEmotion = analysis.secondary_emotion;
-  const confidence       = analysis.confidence;
-  const confPercent      = formatConfidencePercent(confidence * 100);
-  const isUnclear        = predictedEmotion === "Mixed/Unclear";
-  const allProbs         = analysis.all_probabilities || {};
+  const confidence = analysis.confidence;
+  const confPercent = formatConfidencePercent(confidence * 100);
+  const isUnclear = predictedEmotion === "Mixed/Unclear";
+  const allProbs = analysis.all_probabilities || {};
 
   let html = "";
 
-  // ---- Crisis ----
+  // ---- Crisis Banner ----
   if (analysis.show_alert) {
-    html += `<div class="resultLine warn"><strong>Crisis language detected.</strong></div>`;
-    if (analysis.risk_level)
-      html += `<div class="resultLine warn">Risk level: <strong>${analysis.risk_level}</strong></div>`;
-    if (analysis.matched_phrases && analysis.matched_phrases.length)
-      html += `<div class="resultLine warn">Flagged phrases: ${analysis.matched_phrases.join(", ")}</div>`;
-    html += `<div class="resultLine warn">If this feels urgent, please reach out to a trusted person or emergency services right now.</div>`;
+    html += `
+      <div class="result-banner result-banner--crisis">
+        <div class="banner-icon">⚠️</div>
+        <div class="banner-content">
+          <h4 class="banner-title">Safety Alert</h4>
+          <p class="banner-text">We've detected crisis language. If you're feeling overwhelmed, please reach out to a trusted person or emergency services (like 988) immediately.</p>
+          ${analysis.risk_level ? `<p class="banner-meta">Risk level: <strong>${analysis.risk_level}</strong></p>` : ""}
+        </div>
+      </div>
+    `;
     resultBody.innerHTML = html;
     feedbackArea.style.display = "none";
     return;
   }
 
-  // ---- Mixed / low confidence — show best-guess emotion anyway ----
+  // ---- Mixed/Unclear Banner ----
   if (isUnclear) {
-    // Find the highest probability emotion from all_probabilities
     let bestEmotion = null;
     let bestProb = -1;
     for (const [emo, prob] of Object.entries(allProbs)) {
@@ -172,17 +177,22 @@ function renderResult(analysis, isMatch, selectedMood, recommendations = []) {
     }
     const bestPct = formatConfidencePercent(bestProb * 100);
 
-    html += `<div class="resultLine">Your feelings seem <strong>mixed or hard to pin down</strong> right now — and that's completely valid.</div>`;
-    if (bestEmotion) {
-      html += `<div class="resultLine">Strongest detected emotion: <strong>${bestEmotion}</strong> <span style="opacity:.7">(${bestPct} confidence)</span></div>`;
-    }
-    html += `<div class="resultLine" style="opacity:.8">The AI couldn't commit to a single clear emotion — write a bit more for a sharper result.</div>`;
+    html += `
+      <div class="result-banner result-banner--mismatch">
+        <div class="banner-icon">☁️</div>
+        <div class="banner-content">
+          <h4 class="banner-title">Complex Feelings</h4>
+          <p class="banner-text">Your journal suggests a mix of emotions that are hard to categorize simply.</p>
+          ${bestEmotion ? `<p class="banner-meta">Strongest signal: <strong>${bestEmotion}</strong> (${bestPct} confidence)</p>` : ""}
+        </div>
+      </div>
+    `;
     resultBody.innerHTML = html;
     feedbackArea.style.display = "none";
     return;
   }
 
-  // ---- Mood groupings for equivalence ----
+  // ---- Equivalence Check ----
   const POSITIVE = new Set(["Awesome", "Good"]);
   const NEUTRAL = new Set(["Fine"]);
   const NEGATIVE = new Set(["Bad", "Terrible"]);
@@ -191,78 +201,175 @@ function renderResult(analysis, isMatch, selectedMood, recommendations = []) {
     (NEUTRAL.has(selectedMood) && NEUTRAL.has(predictedMood)) ||
     (NEGATIVE.has(selectedMood) && NEGATIVE.has(predictedMood));
 
-  // ---- Primary emotion always shown first ----
-  html += `<div class="resultLine">Main emotion detected: <strong>${predictedEmotion}</strong></div>`;
-  if (secondaryEmotion)
-    html += `<div class="resultLine">Also present: <strong>${secondaryEmotion}</strong></div>`;
-
-  // ---- Mood match / mismatch ----
-  const LOW_CONFIDENCE = confidence < 0.55;
-  if (effectiveMatch) {
-    html += `<div class="resultLine ok">Your feelings and your words align.</div>`;
-  } else if (LOW_CONFIDENCE) {
-    html += `<div class="resultLine warn">The model is not very confident in this read. You picked <strong>${selectedMood}</strong>; its tentative guess from wording is <strong>${predictedMood}</strong>. Trust what you actually feel.</div>`;
-  } else {
-    html += `<div class="resultLine warn">Mood comparison: you selected <strong>${selectedMood}</strong>, while the journal text leans toward <strong>${predictedMood}</strong>.</div>`;
-  }
-
-  if (LOW_CONFIDENCE && !effectiveMatch) {
-    html += `<div class="resultLine" style="opacity:.85">Tip: a longer entry usually gives clearer signals than a single sentence.</div>`;
-  }
-
-  const smConfPercent   = formatConfidencePercent(confidence * 100);
-  const nbConfPercent   = formatConfidencePercent(analysis.nb_confidence * 100);
-
+  // ---- 1. Primary Analysis Card ----
   html += `
-    <div class="resultLine">AI Analysis Comparison:</div>
-    <div class="confidence-comparison">
-      <div class="conf-item">
-        <span class="conf-label">Softmax Regression (Current Main)</span>
-        <div class="conf-bar-bg"><div class="conf-bar" style="width: ${smConfPercent}"></div></div>
-        <div class="conf-val"><strong>${smConfPercent}</strong> confident in <strong>${predictedEmotion}</strong></div>
+    <div class="analysis-hero-card">
+      <div class="hero-main">
+        <span class="hero-label">Detected Emotion</span>
+        <h2 class="hero-value">${predictedEmotion}</h2>
+        ${secondaryEmotion ? `<p class="hero-sub">with hints of <strong>${secondaryEmotion}</strong></p>` : ""}
       </div>
-      <div class="conf-item">
-        <span class="conf-label">Naive Bayes (New Experimental)</span>
-        <div class="conf-bar-bg"><div class="conf-bar nb" style="width: ${nbConfPercent}"></div></div>
-        <div class="conf-val"><strong>${nbConfPercent}</strong> confident in <strong>${analysis.nb_emotion}</strong></div>
+      
+      <div class="hero-footer">
+        ${effectiveMatch ?
+      `<div class="match-badge match-badge--yes">✨ Aligned with your choice</div>` :
+      `<div class="match-badge match-badge--no">🔍 Different from your selection</div>`
+    }
       </div>
     </div>
   `;
 
+  // ---- 2. AI Confidence Section ----
+  const smConfPercent = formatConfidencePercent(confidence * 100);
+  const nbConfPercent = formatConfidencePercent(analysis.nb_confidence * 100);
+
+  html += `
+    <div class="confidence-section">
+      <h3 class="section-title-premium">AI Confidence</h3>
+      <div class="conf-grid-compact">
+        <div class="conf-item-new">
+          <div class="conf-top">
+            <span class="conf-type">Primary Engine</span>
+            <span class="conf-pct">${smConfPercent}</span>
+          </div>
+          <div class="conf-bar-new"><div class="conf-fill-new" style="width: ${smConfPercent}"></div></div>
+        </div>
+        <div class="conf-item-new">
+          <div class="conf-top">
+            <span class="conf-type">Validation Engine</span>
+            <span class="conf-pct">${nbConfPercent}</span>
+          </div>
+          <div class="conf-bar-new"><div class="conf-fill-new experimental" style="width: ${nbConfPercent}"></div></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ---- 3. Mental Health Insight (The "What are these?" part) ----
+  if (analysis.depression_level && analysis.anxiety_level) {
+    html += `
+      <div class="insight-section-premium">
+        <h3 class="section-title-premium">Mental Health Overview</h3>
+        <div class="insight-bento-grid">
+          
+          <!-- Wellness Card -->
+          <div class="bento-card bento-wellness">
+            <div class="wellness-gauge-wrapper">
+              <svg viewBox="0 0 36 36" class="gauge-svg">
+                <path class="gauge-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="gauge-fill" stroke-dasharray="${analysis.wellness_score}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="20.35" class="gauge-text">${analysis.wellness_score}</text>
+              </svg>
+            </div>
+            <div class="wellness-meta">
+              <span class="meta-label">Wellness Score</span>
+              <span class="meta-status status-${analysis.wellness_level.toLowerCase().replace(" ", "-")}">${analysis.wellness_level}</span>
+            </div>
+          </div>
+          
+          <!-- Levels Card -->
+          <div class="bento-card bento-levels">
+            <div class="level-row">
+              <span class="level-name">Depression</span>
+              <span class="level-tag tag-${analysis.depression_level.toLowerCase()}">${analysis.depression_level}</span>
+            </div>
+            <div class="level-row">
+              <span class="level-name">Anxiety</span>
+              <span class="level-tag tag-${analysis.anxiety_level.toLowerCase()}">${analysis.anxiety_level}</span>
+            </div>
+          </div>
+          
+          <!-- Tips Card -->
+          <div class="bento-card bento-tips">
+            <h4 class="tips-header">Personalized Guidance</h4>
+            <ul class="tips-list-new">
+              ${(analysis.recommendations || []).map(r => `
+                <li><span class="tip-bullet"></span> ${r}</li>
+              `).join("")}
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    `;
+  }
 
   resultBody.innerHTML = html;
 
-  // Render Smart Recommendations if any are returned
-
+  // Render Smart Recommendations
   const recsContainer = document.getElementById("recommendationsArea");
   if (analysis.show_alert || isUnclear) {
-      if (recsContainer) recsContainer.style.display = "none";
+    if (recsContainer) recsContainer.style.display = "none";
   } else if (recommendations && recommendations.length > 0 && recsContainer) {
-      recsContainer.style.display = "block";
-      const recsGrid = document.getElementById("recommendationsGrid");
-      recsGrid.innerHTML = "";
-      recommendations.forEach(rec => {
-          recsGrid.innerHTML += `
-            <div class="rec-card">
-              <div class="rec-icon img-slot">&nbsp;</div>
-              <div class="rec-info">
-                <h3>${rec.title}</h3>
-                <p>${rec.duration} • <span class="rec-category">${rec.category}</span></p>
+    recsContainer.style.display = "block";
+    const recsGrid = document.getElementById("recommendationsGrid");
+    recsGrid.innerHTML = "";
+    
+    // Fetch all activities to match images
+    fetch('/api/activities_data')
+      .then(res => res.json())
+      .then(data => {
+        const allActs = Object.values(data.categories || {}).flat();
+        
+        recommendations.forEach(rec => {
+            const matchedAct = allActs.find(a => a.title.toLowerCase() === rec.title.toLowerCase());
+            const imageUrl = matchedAct ? matchedAct.image_url : null;
+            const imageHtml = imageUrl ? 
+              `<img src="${imageUrl}" alt="${rec.title}" class="card-image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">` : 
+              rec.icon || '✨';
+
+            recsGrid.innerHTML += `
+              <div class="activity-card">
+                <div class="card-image-box" style="height: 120px; display: flex; align-items: center; justify-content: center; font-size: 3rem; background: var(--sage-light); border-radius: 12px; margin-bottom: 12px; overflow: hidden;">
+                  ${imageHtml}
+                </div>
+                <div class="card-content">
+                  <h3 class="card-title">${rec.title}</h3>
+                  <p class="card-desc" style="font-size: 0.85rem; color: var(--text-muted);">${rec.category || 'Wellness'}</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">${rec.duration || '5 min'}</span>
+                  <a href="/activities?open=${encodeURIComponent(rec.title)}" class="btn btn-primary btn-pill btn-sm">Start</a>
+                </div>
               </div>
-              <a href="/activities" class="btn btn-outline btn-pill rec-btn">Start</a>
-            </div>
-          `;
+            `;
+        });
       });
   } else if (recsContainer) {
-      recsContainer.style.display = "none";
+    recsContainer.style.display = "none";
   }
 
-  if (!effectiveMatch) {
-    feedbackArea.style.display = "block";
-    feedbackQuestion.textContent = "Does this reading feel accurate to you?";
-  } else {
-    feedbackArea.style.display = "none";
-  }
+  // Add "New Entry" and "Edit Text" buttons
+  const resultFooterHtml = `
+    <div class="result-footer-actions" style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px; display: flex; gap: 16px; justify-content: center;">
+      <button type="button" class="btn btn-outline btn-pill" id="editJournalBtn">Edit Entry</button>
+      <button type="button" class="btn btn-primary btn-pill" id="startNewEntryBtn">Start New Entry</button>
+    </div>
+  `;
+  resultBody.insertAdjacentHTML('beforeend', resultFooterHtml);
+
+  // Listener for New Entry
+  document.getElementById("startNewEntryBtn").addEventListener("click", () => {
+    ["journalAnalysisResult", "journalStep", "journalMood", "journalEmotion", "journalCause", "journalText"].forEach(k => localStorage.removeItem(k));
+    window.location.reload();
+  });
+
+  // Listener for Edit Entry (Start from Step 1)
+  document.getElementById("editJournalBtn").addEventListener("click", () => {
+    const analysisData = JSON.parse(localStorage.getItem("journalAnalysisResult") || "{}");
+    // Restore data to localStorage so resumeProgress can pick it up
+    if (analysisData.payload) {
+      localStorage.setItem("journalMood", analysisData.payload.selectedMood || "");
+      localStorage.setItem("journalSecondaryEmotion", analysisData.payload.selectedSecondaryEmotion || "");
+      localStorage.setItem("journalEmotion", analysisData.payload.selectedSecondaryEmotion || ""); // Duplicate for consistency
+      localStorage.setItem("journalCause", analysisData.payload.selectedCause || "");
+      localStorage.setItem("journalText", analysisData.payload.journalText || "");
+    }
+    // Start from step 1 so they can re-verify everything
+    localStorage.setItem("journalStep", "1");
+    localStorage.removeItem("journalAnalysisResult");
+    window.location.reload(); 
+  });
 }
 
 async function postJson(url, payload) {
@@ -280,58 +387,144 @@ async function postJson(url, payload) {
 }
 
 /* Samsung Health–style: calm intro, then card-based steps */
+// ---- Progress Persistence & Restoration ----
+function saveProgress() {
+  localStorage.setItem("journalMood", selectedMoodInput.value);
+  localStorage.setItem("journalEmotion", selectedSecondaryInput.value);
+  localStorage.setItem("journalCause", selectedCauseInput.value);
+  localStorage.setItem("journalText", journalText.value);
+  localStorage.setItem("journalLastDate", new Date().toDateString());
+}
+
+function resumeProgress() {
+  const savedStep = localStorage.getItem("journalStep");
+  if (!savedStep) return;
+
+  // Show form, hide intro
+  introScreen.hidden = true;
+  moodForm.hidden = false;
+
+  // Restore step
+  setStep(savedStep);
+
+  // 1. Restore Mood
+  const savedMood = localStorage.getItem("journalMood");
+  if (savedMood) {
+    const moodBtn = moodGrid.querySelector(`.mood-card[data-mood="${savedMood}"]`);
+    if (moodBtn) moodBtn.click();
+  }
+
+  // 2. Restore Emotion
+  const savedEmo = localStorage.getItem("journalEmotion");
+  if (savedEmo && savedMood) {
+    renderEmotionGrid();
+    setTimeout(() => {
+      const emoChip = emotionGrid.querySelector(`.emotion-chip[data-emotion="${savedEmo}"]`);
+      if (emoChip) emoChip.click();
+    }, 150);
+  }
+
+  // 3. Restore Cause
+  const savedCause = localStorage.getItem("journalCause");
+  if (savedCause) {
+    const causeBtn = causeGrid.querySelector(`.cause-card[data-cause="${savedCause}"]`);
+    if (causeBtn) causeBtn.click();
+  }
+
+  // 4. Restore Text
+  const savedText = localStorage.getItem("journalText");
+  if (savedText) {
+    journalText.value = savedText;
+    if (savedText.trim().length > 0) analyzeBtn.disabled = false;
+  }
+}
+
+window.initDashboard = function () {
+  const savedStep = localStorage.getItem("journalStep");
+  const savedResult = localStorage.getItem("journalAnalysisResult");
+  const lastSavedDate = localStorage.getItem("journalLastDate");
+  const today = new Date().toDateString();
+
+  // If the saved data is from a different day, clear it
+  if (lastSavedDate && lastSavedDate !== today) {
+    localStorage.removeItem("journalStep");
+    localStorage.removeItem("journalAnalysisResult");
+    localStorage.removeItem("journalMood");
+    localStorage.removeItem("journalEmotion");
+    localStorage.removeItem("journalCause");
+    localStorage.removeItem("journalText");
+    localStorage.removeItem("journalLastDate");
+    console.log("Cleared old journal draft from previous day");
+    startJournalingBtn.textContent = "Start Journaling";
+    return;
+  }
+
+  if (savedResult) {
+    // If we have a saved result, show it automatically
+    const analysisData = JSON.parse(savedResult);
+    introScreen.hidden = true;
+    moodForm.hidden = false; 
+    
+    // Restore the writing area content and step
+    if (analysisData.payload && analysisData.payload.journalText) {
+      journalText.value = analysisData.payload.journalText;
+    }
+    setStep(4); 
+    
+    resultArea.style.display = "block";
+    renderResult(analysisData.analysis, analysisData.isMatch, analysisData.selectedMood, analysisData.recommendations, analysisData.payload);
+  } else if (savedStep) {
+    // If we have a draft, show the intro but with "Resume" text
+    introScreen.hidden = false;
+    moodForm.hidden = true;
+    startJournalingBtn.textContent = "Resume Journaling";
+
+    // Also pre-fill the form in the background so it's ready when they click Resume
+    resumeProgress();
+    // But then hide it again because resumeProgress() unhides it
+    introScreen.hidden = false;
+    moodForm.hidden = true;
+  } else {
+    startJournalingBtn.textContent = "Start Journaling";
+  }
+
+  console.log("Dashboard initialized");
+};
+
 startJournalingBtn.addEventListener("click", () => {
   introScreen.hidden = true;
   moodForm.hidden = false;
-  // ---- Pre-filling logic for "one entry per day" ----
-  function handlePreFill() {
-    const entry = window.todayEntry;
-    if (!entry) return;
 
-    console.log("Pre-filling today's entry:", entry);
-
-    // 1. Fill Mood
-    const moodBtn = moodGrid.querySelector(`.mood-card[data-mood="${entry.selected_mood}"]`);
-    if (moodBtn) {
-      moodBtn.click();
-    }
-
-    // 2. Fill Secondary Emotion
-    if (entry.selected_secondary_emotion) {
-      // We need to wait a bit for Step 2 chips to be generated
-      setTimeout(() => {
-        const emoChip = emotionGrid.querySelector(`.emotion-chip[data-emotion="${entry.selected_secondary_emotion}"]`);
-        if (emoChip) emoChip.click();
-      }, 100);
-    }
-
-    // 3. Fill Cause
-    if (entry.selected_cause) {
-      const causeBtn = causeGrid.querySelector(`.cause-card[data-cause="${entry.selected_cause}"]`);
-      if (causeBtn) causeBtn.click();
-    }
-
-    // 4. Fill Journal Text
-    if (entry.journal_text) {
-      journalText.value = entry.journal_text;
-      if (journalText.value.trim().length > 0) {
-        analyzeBtn.disabled = false;
-      }
-    }
+  if (localStorage.getItem("journalStep")) {
+    resumeProgress();
+  } else {
+    setStep(1);
   }
-
-  // Initial set
-  setStep(1);
-  handlePreFill();
   window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// Stepper click interactions
+document.querySelectorAll(".step").forEach((step) => {
+  step.addEventListener("click", () => {
+    const stepNum = parseInt(step.getAttribute("data-step"));
+    if (stepNum === 2 && selectedMoodInput.value) renderEmotionGrid();
+    setStep(stepNum);
+  });
+});
+
+// Persist journal text
+journalText.addEventListener("input", () => {
+  localStorage.setItem("journalText", journalText.value);
 });
 
 moodGrid.querySelectorAll(".mood-card").forEach((btn) => {
   btn.addEventListener("click", () => {
     moodGrid.querySelectorAll(".mood-card").forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
-    selectedMoodInput.value = btn.dataset.mood || "";
-    toStep2Btn.disabled = !selectedMoodInput.value;
+    const mood = btn.dataset.mood || "";
+    selectedMoodInput.value = mood;
+    toStep2Btn.disabled = !mood;
+    localStorage.setItem("journalMood", mood);
   });
 });
 
@@ -339,8 +532,10 @@ causeGrid.querySelectorAll(".cause-card").forEach((btn) => {
   btn.addEventListener("click", () => {
     causeGrid.querySelectorAll(".cause-card").forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
-    selectedCauseInput.value = btn.dataset.cause || "";
-    toStep4Btn.disabled = !selectedCauseInput.value;
+    const cause = btn.dataset.cause || "";
+    selectedCauseInput.value = cause;
+    toStep4Btn.disabled = !cause;
+    localStorage.setItem("journalCause", cause);
   });
 });
 
@@ -388,11 +583,23 @@ form.addEventListener("submit", async (e) => {
     const isMatch = resp.isMatch;
     const selectedMood = payload.selectedMood;
     const recommendations = resp.recommendations || [];
-    
+
     // Store journalId for feedback
     window.lastJournalId = resp.meta ? resp.meta.journalId : null;
 
-    renderResult(analysis, isMatch, selectedMood, recommendations);
+    renderResult(analysis, isMatch, selectedMood, recommendations, payload);
+
+    // Persist result and payload so it stays if they navigate away and come back
+    localStorage.setItem("journalAnalysisResult", JSON.stringify({
+      analysis,
+      isMatch,
+      selectedMood,
+      recommendations,
+      payload // Store original payload for editing later
+    }));
+
+    // We no longer clear the draft here immediately, 
+    // we clear it when the user clicks "Start New Entry".
 
     if (analysis.show_alert) {
       feedbackArea.style.display = "none";
@@ -422,41 +629,46 @@ form.addEventListener("submit", async (e) => {
 });
 
 function attachFeedbackListeners() {
-    const yes = document.getElementById("yesFeedbackBtn");
-    const no = document.getElementById("noFeedbackBtn");
-    if (!yes || !no) return;
+  const yes = document.getElementById("yesFeedbackBtn");
+  const no = document.getElementById("noFeedbackBtn");
+  if (!yes || !no) return;
 
-    yes.addEventListener("click", async () => {
-      yes.disabled = true;
-      no.disabled = true;
-      yes.textContent = "Saving…";
-      try {
-        await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "Yes" });
-        feedbackArea.innerHTML = `<div class="resultLine ok">Saved. Thank you — your feedback helps improve the AI.</div>`;
-      } catch (err) {
-        yes.disabled = false;
-        no.disabled = false;
-        yes.textContent = "Yes";
-        setAlert("Failed to save: " + err.message);
-      }
-    });
+  yes.addEventListener("click", async () => {
+    yes.disabled = true;
+    no.disabled = true;
+    yes.textContent = "Saving…";
+    try {
+      await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "Yes" });
+      feedbackArea.innerHTML = `<div class="resultLine ok">Saved. Thank you — your feedback helps improve the AI.</div>`;
+    } catch (err) {
+      yes.disabled = false;
+      no.disabled = false;
+      yes.textContent = "Yes";
+      setAlert("Failed to save: " + err.message);
+    }
+  });
 
-    no.addEventListener("click", async () => {
-      yes.disabled = true;
-      no.disabled = true;
-      no.textContent = "Saving…";
-      try {
-        await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "No" });
-        feedbackArea.innerHTML = `<div class="resultLine ok">Noted — we'll use your feedback to improve.</div>`;
-      } catch (err) {
-        yes.disabled = false;
-        no.disabled = false;
-        no.textContent = "No";
-        setAlert("Failed to save: " + err.message);
-      }
-    });
+  no.addEventListener("click", async () => {
+    yes.disabled = true;
+    no.disabled = true;
+    no.textContent = "Saving…";
+    try {
+      await postJson("/api/feedback", { journalId: window.lastJournalId, feedback: "No" });
+      feedbackArea.innerHTML = `<div class="resultLine ok">Noted — we'll use your feedback to improve.</div>`;
+    } catch (err) {
+      yes.disabled = false;
+      no.disabled = false;
+      no.textContent = "No";
+      setAlert("Failed to save: " + err.message);
+    }
+  });
 }
 
 
-// End of app.js
+// Logout: Clear all local storage
+document.querySelectorAll('a[href="/logout"]').forEach(a => {
+  a.addEventListener('click', () => {
+    localStorage.clear();
+  });
+});
 

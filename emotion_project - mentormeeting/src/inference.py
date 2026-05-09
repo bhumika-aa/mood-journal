@@ -5,16 +5,32 @@ from crisis_detector import detect_crisis_language
 from preprocess import preprocess
 from tfidf import compute_tfidf
 from model import SoftmaxRegression, NaiveBayes
+from depression_anxiety_detector import (
+    detect_depression_anxiety,
+    get_severity
+)
+from wellness_scoring import (
+    calculate_wellness_score,
+    get_wellness_level,
+)
+from recommendations import (
+    generate_recommendations
+)
 
 # CONFIGURATION
 EMOTION_NAMES = ["Sadness", "Joy", "Love", "Anger", "Fear", "Surprise"]
 CONFIDENCE_THRESHOLD = 0.55
 
+from pathlib import Path
+# ...
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_DIR = BASE_DIR / "saved_model"
+
 # LOAD MODELS
-data = np.load("../saved_model/model_weights.npz")
+data = np.load(MODEL_DIR / "model_weights.npz")
 idf = data["idf"]
 
-with open("../saved_model/vocab.pkl", "rb") as f:
+with open(MODEL_DIR / "vocab.pkl", "rb") as f:
     vocab = pickle.load(f)
 
 # Softmax
@@ -67,7 +83,17 @@ def analyze_journal(text, user_selected_mood):
             "show_alert": True,
             "risk_level": crisis_result["risk_level"],
             "matched_phrases": crisis_result["matched_phrases"],
+            "depression_level": "High",
+            "anxiety_level": "High",
+            "depression_score": 5,
+            "anxiety_score": 5,
+            "wellness_score": 0,
+            "wellness_level": "Critical",
+            "recommendations": ["Please seek professional help immediately."],
         }
+
+    # 🧠 Mental Health Detection
+    mental_health_result = detect_depression_anxiety(text)
 
     # PREPROCESS
     tokens = preprocess(text)
@@ -87,6 +113,36 @@ def analyze_journal(text, user_selected_mood):
     # NAIVE BAYES PREDICTION
     _, nb_probs = nb_model.predict(X)
     nb_probabilities = nb_probs[0]
+    
+    # 🧪 HEURISTIC BOOST (Sensitivity Improvement)
+    # If the text explicitly mentions strong emotional keywords, we give them a slight push.
+    # This helps when positive context outweighs a final emotional statement.
+    lower_text = text.lower()
+    boosts = {
+        "Sadness": ["sad", "depressed", "unhappy", "lonely", "crying", "miserable", "heartbroken", "gloomy", "hopeless", "grief", "sorrow"],
+        "Anger": ["angry", "frustrated", "annoyed", "pissed", "mad", "hate", "furious", "irritated", "rage", "resent", "bitter"],
+        "Fear": ["scared", "anxious", "worried", "panic", "fear", "nervous", "terrified", "frightened", "apprehensive", "dread"],
+    }
+    
+    for emotion, keywords in boosts.items():
+        if any(kw in lower_text for kw in keywords):
+            idx = EMOTION_NAMES.index(emotion)
+            # Boost the probability of the detected emotion
+            sm_probabilities[idx] += 0.25
+            nb_probabilities[idx] += 0.25
+    
+    # Re-normalize probabilities
+    sm_probabilities = sm_probabilities / np.sum(sm_probabilities)
+    nb_probabilities = nb_probabilities / np.sum(nb_probabilities)
+
+    # RE-SORT AFTER BOOST
+    sm_sorted_indices = np.argsort(sm_probabilities)[::-1]
+    sm_top1_idx = sm_sorted_indices[0]
+    sm_top2_idx = sm_sorted_indices[1]
+    
+    predicted_emotion = EMOTION_NAMES[sm_top1_idx]
+    confidence = sm_probabilities[sm_top1_idx]
+    
     nb_top_idx = np.argmax(nb_probabilities)
     nb_confidence = nb_probabilities[nb_top_idx]
     nb_emotion = EMOTION_NAMES[nb_top_idx]
@@ -100,6 +156,38 @@ def analyze_journal(text, user_selected_mood):
         secondary_emotion = EMOTION_NAMES[sm_top2_idx]
     else:
         secondary_emotion = None
+
+    # Hybrid enhancement
+    if predicted_emotion == "Sadness":
+        mental_health_result["depression_score"] += 1
+    if predicted_emotion == "Fear":
+        mental_health_result["anxiety_score"] += 1
+
+    # Recalculate levels
+    mental_health_result["depression_level"] = get_severity(
+        mental_health_result["depression_score"]
+    )
+    mental_health_result["anxiety_level"] = get_severity(
+        mental_health_result["anxiety_score"]
+    )
+
+    # Calculate Wellness Score
+    wellness_score = calculate_wellness_score(
+        predicted_emotion,
+        mental_health_result["depression_score"],
+        mental_health_result["anxiety_score"],
+        crisis_result["is_crisis"],
+    )
+
+    # Wellness Level
+    wellness_level = get_wellness_level(wellness_score)
+
+    # Generate Recommendations
+    recommendations = generate_recommendations(
+        mental_health_result["depression_level"],
+        mental_health_result["anxiety_level"],
+        predicted_emotion,
+    )
 
     predicted_mood = map_emotion_to_mood(predicted_emotion)
 
@@ -118,6 +206,13 @@ def analyze_journal(text, user_selected_mood):
         "show_alert": False,
         "risk_level": None,
         "matched_phrases": [],
+        "depression_level": mental_health_result["depression_level"],
+        "anxiety_level": mental_health_result["anxiety_level"],
+        "depression_score": mental_health_result["depression_score"],
+        "anxiety_score": mental_health_result["anxiety_score"],
+        "wellness_score": wellness_score,
+        "wellness_level": wellness_level,
+        "recommendations": recommendations,
     }
 
     # MODAL LOGIC

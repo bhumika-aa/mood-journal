@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MindJournal – History</title>
+  <title>Mood Journal – History</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
@@ -18,7 +18,7 @@
     }
     .history-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 24px;
     }
     .history-card {
@@ -98,7 +98,7 @@
 <body>
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="logo">MindJournal</div>
+      <div class="logo">Mood Journal</div>
       <nav class="nav-links">
         <a href="/dashboard" class="nav-item">
           <span class="text">Dashboard</span>
@@ -120,54 +120,105 @@
       </div>
     </aside>
 
-    <div class="main-area">
+    <div class="main-area" style="background: linear-gradient(145deg, #E6EFEA 0%, #F0EBF8 50%, #dceee6 100%); min-height: 100vh;">
       <header class="site-header mobile-header">
-        <span class="logo">MindJournal</span>
+        <span class="logo">Mood Journal</span>
         <a class="btn btn-urgent btn-pill" href="tel:988">Urgent support</a>
       </header>
 
-      <main class="page">
-        <header class="section-header">
-          <h1>Journal History</h1>
-          <p>Review your past reflections and find your favorites.</p>
+      <main class="page reports-page">
+        <header class="reports-header section-header">
+          <h1 class="reports-title">Journal History</h1>
         </header>
 
         <div class="history-filters">
-          <div class="pill-group enhanced-pills">
-            <a href="/history?filter=today" class="pill filter-pill {% if current_filter == 'today' %}active{% endif %}">Today</a>
-            <a href="/history?filter=monthly" class="pill filter-pill {% if current_filter == 'monthly' %}active{% endif %}">Monthly</a>
-            <a href="/history?filter=favourites" class="pill filter-pill {% if current_filter == 'favourites' %}active{% endif %}">Favourites</a>
+            <div class="pill-group enhanced-pills" id="filterGroup">
+              <a href="/history?filter=today" class="pill filter-pill" data-filter="today">Today</a>
+              <a href="/history?filter=monthly" class="pill filter-pill" data-filter="monthly">Monthly</a>
+              <a href="/history?filter=favourites" class="pill filter-pill" data-filter="favourites">Favourites</a>
+            </div>
           </div>
-        </div>
 
-        <div class="history-grid">
-          {% for entry in entries %}
-          <div class="history-card" data-id="{{ entry.id }}">
-            <button class="fav-btn {% if entry.is_favourite %}active{% endif %}" onclick="toggleFav({{ entry.id }}, this)" title="Toggle Favourite">
-              ★
-            </button>
-            <div class="history-date">{{ entry.created_at|replace('T', ' ')|truncate(16, True, '') }}</div>
-            <div class="history-mood-tag mood-bg-{{ entry.selected_mood|lower }}">
-              {{ entry.selected_mood }} • {{ entry.predicted_emotion }}
-            </div>
-            <div class="history-text" id="text-{{ entry.id }}">
-              {{ entry.journal_text }}
-            </div>
-            {% if entry.journal_text|length > 100 %}
-            <button class="read-more" onclick="toggleText({{ entry.id }}, this)">Read more</button>
-            {% endif %}
-          </div>
-          {% else %}
-          <div class="empty-state">
-            <p>No journal entries found for this filter.</p>
-          </div>
-          {% endfor %}
+        <div class="history-grid" id="historyGrid">
+           <!-- Loaded by JS -->
+           <div class="empty-state"><p>Loading your history...</p></div>
         </div>
       </main>
     </div>
   </div>
 
   <script>
+    async function loadHistory() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const filter = urlParams.get('filter') || 'today';
+        
+        // Update filter UI
+        document.querySelectorAll('.filter-pill').forEach(pill => {
+            if (pill.dataset.filter === filter) pill.classList.add('active');
+            else pill.classList.remove('active');
+        });
+
+        // Add Admin Link if needed
+        try {
+            const userRes = await fetch('/api/user_info');
+            const userData = await userRes.json();
+            if (userData.is_admin) {
+                const navLinks = document.querySelector('.nav-links');
+                if (navLinks && ![...navLinks.querySelectorAll('a')].some(a => a.href.includes('/admin'))) {
+                    // Add separator
+                    const sep = document.createElement('div');
+                    sep.style.height = '1px';
+                    sep.style.background = 'rgba(255,255,255,0.1)';
+                    sep.style.margin = '12px 16px';
+                    navLinks.appendChild(sep);
+
+                    const adminLink = document.createElement('a');
+                    adminLink.href = '/admin';
+                    adminLink.className = 'nav-item';
+                    adminLink.innerHTML = '<span class="text">Admin Panel</span>';
+                    navLinks.appendChild(adminLink);
+                }
+            }
+        } catch(e) {}
+
+        try {
+            const resp = await fetch(`/api/history_data?filter=${filter}`);
+            const data = await resp.json();
+            renderHistory(data.entries);
+        } catch (err) {
+            console.error('Failed to load history:', err);
+            document.getElementById('historyGrid').innerHTML = '<div class="empty-state"><p>Error loading history.</p></div>';
+        }
+    }
+
+    function renderHistory(entries) {
+        const grid = document.getElementById('historyGrid');
+        if (!entries || entries.length === 0) {
+            grid.innerHTML = '<div class="empty-state"><p>No journal entries found for this filter.</p></div>';
+            return;
+        }
+
+        grid.innerHTML = entries.map(entry => {
+            const dateStr = entry.created_at.replace('T', ' ').substring(0, 16);
+            const isFav = entry.is_favourite ? 'active' : '';
+            const needsReadMore = entry.journal_text.length > 100;
+            
+            return `
+              <div class="history-card" data-id="${entry.id}">
+                <button class="fav-btn ${isFav}" onclick="toggleFav(${entry.id}, this)" title="Toggle Favourite">★</button>
+                <div class="history-date">${dateStr}</div>
+                <div class="history-mood-tag ${entry.predicted_emotion === 'Crisis' ? 'crisis-tag' : 'mood-bg-' + entry.selected_mood.toLowerCase()}">
+                  ${entry.predicted_emotion === 'Crisis' ? '🚨 Crisis Detected' : entry.selected_mood + ' • ' + (entry.predicted_emotion || 'N/A')}
+                </div>
+                <div class="history-text" id="text-${entry.id}">
+                  ${entry.journal_text}
+                </div>
+                ${needsReadMore ? `<button class="read-more" onclick="toggleText(${entry.id}, this)">Read more</button>` : ''}
+              </div>
+            `;
+        }).join('');
+    }
+
     async function toggleFav(id, btn) {
         try {
             const resp = await fetch('/api/toggle_favourite', {
@@ -178,7 +229,6 @@
             const data = await resp.json();
             if (data.ok) {
                 btn.classList.toggle('active', data.is_favourite);
-                // If we are in the favourites filter, maybe remove the card?
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('filter') === 'favourites' && !data.is_favourite) {
                     btn.closest('.history-card').remove();
@@ -199,6 +249,8 @@
             btn.textContent = 'Read less';
         }
     }
+
+    document.addEventListener('DOMContentLoaded', loadHistory);
   </script>
 </body>
 </html>

@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mood Journal  Activities</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="logo">Mood Journal</div>
+      <nav class="nav-links">
+        <a href="/dashboard" class="nav-item">          <span class="text">Dashboard</span>
+        </a>
+        <a href="/history" class="nav-item">          <span class="text">History</span>
+        </a>
+        <a href="/activities" class="nav-item active">          <span class="text">Activities</span>
+        </a>
+        <a href="/reports" class="nav-item">          <span class="text">Reports</span>
+        </a>
+      </nav>
+      <div class="user-block">
+        <a href="/logout" class="nav-item">          <span class="text">Log out</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <header class="site-header mobile-header">
+        <span class="logo">Mood Journal</span>
+      </header>
+
+      <main class="page activities-page reports-page">
+        <header class="reports-header section-header">
+          <h1 class="reports-title">Activities</h1>
+        </header>
+
+        <div class="activities-container" id="activitiesContainer">
+          <!-- Populated dynamically by JS -->
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            Loading activities...
+          </div>
+        </div>
+      </main>
+    </div> <!-- End main-area -->
+  </div> <!-- End app-layout -->
+
+  <!-- Activity Execution Modal -->
+  <div id="activityModal" class="activity-modal-overlay" hidden>
+    <div class="activity-modal-box">
+      <header class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Activity Name</h2>
+        <button id="modalClose" class="modal-close-btn">&times;</button>
+      </header>
+      <div id="modalBody" class="modal-body">
+        <!-- Content gets injected here by JS depending on mode -->
+      </div>
+      <footer class="modal-footer" id="modalFooter" hidden>
+        <!-- Footer actions injected here -->
+      </footer>
+    </div>
+  </div>
+
+  <!-- Activity Logs Modal -->
+  <div id="logsModal" class="activity-modal-overlay" hidden>
+    <div class="activity-modal-box" style="max-width: 600px;">
+      <header class="modal-header">
+        <h2 class="modal-title">Your Activity Journal</h2>
+        <button id="logsModalClose" class="modal-close-btn">&times;</button>
+      </header>
+      <div id="logsModalBody" class="modal-body" style="max-height: 400px; overflow-y: auto;">
+        <!-- Logs injected here -->
+      </div>
+      <footer class="modal-footer">
+        <button class="btn btn-primary btn-pill" onclick="document.getElementById('logsModal').hidden = true">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Floating Buttons -->
+  <div style="position: fixed; bottom: 40px; right: 40px; z-index: 100; display: flex; flex-direction: column; gap: 15px;">
+    <button id="viewLogsBtn" class="btn btn-primary" style="width: 60px; height: 60px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(62,95,85,0.3); border: none; background-color: #fff; color: var(--primary);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+    <div id="adminAddBtn" style="display: none;">
+        <button class="btn btn-primary" style="width: 60px; height: 60px; border-radius: 50%; font-size: 30px; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(62,95,85,0.3); border: none;">+</button>
+    </div>
+  </div>
+
+  <!-- Admin: Create/Edit Activity Modal -->
+  <div id="createActivityModal" class="activity-modal-overlay" hidden>
+    <div class="activity-modal-box" style="max-width: 600px;">
+      <header class="modal-header">
+        <h2 class="modal-title" id="adminModalTitle">Create Wellness Activity</h2>
+        <button id="createModalClose" class="modal-close-btn">&times;</button>
+      </header>
+      <form id="createActivityForm">
+        <input type="hidden" id="editActId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="newActTitle" required placeholder="e.g. Guided Stillness">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="newActCategory" required>
+              <option>Quick Calm</option>
+              <option>Mind & Reflection</option>
+              <option>Reflective</option>
+              <option>Physical Reset</option>
+              <option>Guided Relaxation</option>
+              <option>Exercise</option>
+              <option>Social</option>
+              <option>Learn & Heal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Activity Image</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="newActImage" placeholder="URL or leave blank for upload" style="flex: 1;">
+                <span>or</span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('imageUploadInput').click()">Browse Device</button>
+                <input type="file" id="imageUploadInput" style="display: none;" accept="image/*">
+            </div>
+            <small id="uploadStatus" style="display: block; margin-top: 5px; color: var(--primary);"></small>
+          </div>
+          <div id="audioUrlField" class="form-group" style="display: none;">
+            <label>Audio URL (Direct link to .mp3)</label>
+            <input type="text" id="newActAudio" placeholder="https://example.com/audio.mp3">
+          </div>
+          <div class="form-group">
+            <label>Short Description</label>
+            <textarea id="newActDesc" required placeholder="Describe the exercise..." style="height: 80px;"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Duration</label>
+              <input type="text" id="newActDuration" placeholder="e.g. 5 min">
+            </div>
+            <div class="form-group">
+              <label>Focus Emotion</label>
+              <select id="newActEmotion">
+                <option>Happy</option>
+                <option>Sad</option>
+                <option>Angry</option>
+                <option>Anxious</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Action Type</label>
+              <select id="newActType">
+                <option value="article">Article / Read</option>
+                <option value="breathe">Breathing</option>
+                <option value="journal">Journaling</option>
+                <option value="audio">Audio</option>
+                <option value="exercise">Exercise / Do</option>
+              </select>
+            </div>
+          </div>
+          <div id="promptField" class="form-group" style="display: none;">
+            <label>Journal Prompt</label>
+            <input type="text" id="newActPrompt" placeholder="e.g. I feel grateful because...">
+          </div>
+          <div id="contentField" class="form-group">
+            <label>Article Content (HTML)</label>
+            <textarea id="newActContent" placeholder="<p>Main body of article...</p>" style="height: 120px;"></textarea>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="createModalCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-pill" id="adminModalSubmit">Publish Activity</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Delete Confirmation Modal -->
+  <div id="deleteConfirmModal" class="activity-modal-overlay" hidden>
+    <div class="activity-modal-box" style="max-width: 400px; padding: 32px; text-align: left;">
+      <h2 class="modal-title" style="margin-bottom: 12px; font-family: var(--font-sans); font-weight: 600;">Delete activity?</h2>
+      <p style="color: var(--text-muted); margin-bottom: 32px; font-size: 1.05rem;">Are you sure you want to delete it?</p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-ghost" id="cancelDeleteBtn" style="padding: 10px 20px;">Cancel</button>
+        <button class="btn btn-primary btn-pill" id="confirmDeleteBtn" style="background-color: #e11d48; border-color: #e11d48; padding: 10px 24px;">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const modal = document.getElementById('activityModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFooter = document.getElementById('modalFooter');
+    const modalClose = document.getElementById('modalClose');
+
+    // Admin Elements
+    const adminModal = document.getElementById('createActivityModal');
+    const adminForm = document.getElementById('createActivityForm');
+    const adminModalTitle = document.getElementById('adminModalTitle');
+    const adminModalSubmit = document.getElementById('adminModalSubmit');
+    const editActId = document.getElementById('editActId');
+
+    // State
+    let currentInterval = null; 
+    let audioTimer = null;
+    let isAdmin = false;
+    let allActivitiesList = [];
+
+    // Toggle fields in Admin Modal
+    document.getElementById('newActType').addEventListener('change', (e) => {
+        const type = e.target.value;
+        document.getElementById('promptField').style.display = type === 'journal' ? 'block' : 'none';
+        document.getElementById('contentField').style.display = type === 'article' || type === 'exercise' ? 'block' : 'none';
+        document.getElementById('audioUrlField').style.display = type === 'audio' ? 'block' : 'none';
+    });
+
+    // Reset Modal function
+    function resetModal() {
+      clearInterval(currentInterval);
+      clearInterval(audioTimer);
+      if (window.currentAudioElement) {
+        window.currentAudioElement.pause();
+        window.currentAudioElement = null;
+      }
+      modalBody.innerHTML = '';
+      modalFooter.innerHTML = '';
+      modalFooter.hidden = true;
+      modal.hidden = true;
+    }
+
+    modalClose.addEventListener('click', resetModal);
+    modal.addEventListener('click', (e) => {
+      if(e.target === modal) resetModal();
+    });
+
+    document.getElementById('deleteConfirmModal').addEventListener('click', (e) => {
+        if(e.target === document.getElementById('deleteConfirmModal')) {
+            document.getElementById('deleteConfirmModal').hidden = true;
+        }
+    });
+
+    async function loadActivities() {
+        try {
+            // Admin Check
+            const userRes = await fetch('/api/user_info');
+            const userData = await userRes.json();
+            isAdmin = userData.is_admin;
+
+            if (isAdmin) {
+                // Add Sidebar link if not exists
+                const navLinks = document.querySelector('.nav-links');
+                if (navLinks && ![...navLinks.querySelectorAll('a')].some(a => a.href === '/admin' || a.href.includes('/admin'))) {
+                    const sep = document.createElement('div');
+                    sep.style.height = '1px';
+                    sep.style.background = 'rgba(255,255,255,0.1)';
+                    sep.style.margin = '12px 16px';
+                    navLinks.appendChild(sep);
+
+                    const adminLink = document.createElement('a');
+                    adminLink.href = '/admin';
+                    adminLink.className = 'nav-item';
+                    adminLink.innerHTML = '<span class="text">Admin Panel</span>';
+                    navLinks.appendChild(adminLink);
+                }
+
+                document.getElementById('adminAddBtn').style.display = 'block';
+                document.getElementById('adminAddBtn').onclick = () => {
+                    openAdminModal();
+                };
+            }
+
+            // Fetch and render
+            const res = await fetch('/api/activities_data');
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            
+            const data = await res.json();
+            if (data.categories) {
+                // Flatten for easier lookup
+                allActivitiesList = Object.values(data.categories).flat();
+                renderActivityGroups(data.categories);
+            } else {
+                throw new Error(data.error || 'No categories found');
+            }
+            
+        } catch(e) {
+            console.error('Failed to load activities:', e);
+            document.getElementById('activitiesContainer').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #e11d48;">
+                    <p>Failed to load activities. Please try refreshing the page.</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderActivityGroups(categories) {
+        const container = document.getElementById('activitiesContainer');
+        container.innerHTML = '';
+        
+        const catOrder = ['Quick Calm', 'Mind & Reflection', 'Reflective', 'Physical Reset', 'Guided Relaxation', 'Exercise', 'Social', 'Learn & Heal'];
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoOpenTitle = urlParams.get('open');
+        
+        catOrder.forEach(cat => {
+            if (!categories[cat]) return;
+            
+            const section = document.createElement('section');
+            section.className = 'activity-section';
+            const subtitle = cat === 'Quick Calm' ? ' <span class="section-subtitle">(Instant Relief)</span>' : '';
+            
+            section.innerHTML = `
+                <div class="section-title-wrap">
+                    <h2 class="section-heading">${cat}${subtitle}</h2>
+                </div>
+                <div class="activities-grid ${cat === 'Quick Calm' ? 'quick-calm-grid' : (cat === 'Guided Relaxation' ? 'list-grid' : '')}">
+                </div>
+            `;
+            
+            const grid = section.querySelector('.activities-grid');
+            categories[cat].forEach(act => {
+                const card = createActivityCard(act);
+                grid.appendChild(card);
+            });
+            
+            container.appendChild(section);
+            container.appendChild(document.createElement('hr')).className = 'section-divider';
+        });
+
+        if (autoOpenTitle) {
+            const btns = document.querySelectorAll(`button[data-title]`);
+            for (const btn of btns) {
+                if (btn.dataset.title.toLowerCase() === autoOpenTitle.toLowerCase()) {
+                    btn.click();
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
+    }
+
+    function createActivityCard(act) {
+        const card = document.createElement('div');
+        const isRelax = act.category === 'Guided Relaxation';
+        card.className = `activity-card ${isRelax ? 'relaxation-card' : ''}`;
+        
+        const imageHtml = act.image_url ? `<div class="card-image-box"><img src="${act.image_url}" alt="${act.title}" class="card-image"></div>` : '';
+
+        // Admin Actions HTML
+        const adminActions = isAdmin ? `
+            <div class="admin-card-actions">
+                <button class="admin-action-btn admin-edit-btn" onclick="event.stopPropagation(); handleEditActivity(${act.id})" title="Edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="admin-action-btn admin-delete-btn" onclick="event.stopPropagation(); handleDeleteActivity(${act.id})" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </div>
+        ` : '';
+
+        if (isRelax) {
+            card.innerHTML = `
+                ${adminActions}
+                ${imageHtml}
+                <button class="play-btn" data-action="${act.action_type || 'audio'}" 
+                        data-title="${act.title}" data-id="${act.id}" data-audio="${act.audio_url || ''}"></button>
+                <div class="card-content">
+                  <h3 class="card-title">${act.title}</h3>
+                  <p class="card-desc">${act.description}</p>
+                </div>
+                <div class="card-duration">${act.duration}</div>
+            `;
+        } else {
+            const isQuick = act.category === 'Quick Calm';
+            const icon = isQuick && !act.image_url ? '<div class="breath-circle-container"><div class="breath-circle"></div></div>' : '';
+            card.innerHTML = `
+                ${adminActions}
+                ${imageHtml}
+                ${icon}
+                <div class="card-content">
+                  <h3 class="card-title">${act.title}</h3>
+                  <p class="card-desc">${act.description}</p>
+                </div>
+                <div class="card-footer">
+                  <span class="duration">${act.duration}</span>
+                  <button class="btn btn-primary btn-pill btn-sm rec-btn" 
+                          data-id="${act.id}" data-action="${act.action_type || 'breathe'}" 
+                          data-title="${act.title}" data-audio="${act.audio_url || ''}"
+                          data-prompt="${act.prompt || ''}" data-content="${act.content || ''}">Start</button>
+                </div>
+            `;
+        }
+
+        const actionBtn = card.querySelector('[data-action]');
+        if (actionBtn) actionBtn.addEventListener('click', handleActionClick);
+
+        return card;
+    }
+
+    function handleActionClick(e) {
+        const btn = e.currentTarget;
+        const action = btn.dataset.action;
+        const title = btn.dataset.title;
+        const id = btn.dataset.id;
+        modalTitle.textContent = title;
+
+        if(action === 'breathe') renderBreatheMode(title);
+        else if (action === 'journal') renderJournalMode(title, btn.dataset.prompt, id);
+        else if (action === 'audio') renderAudioMode(title, btn.dataset.audio);
+        else if (action === 'article' || action === 'exercise') renderArticleMode(title, btn.dataset.content);
+
+        modal.hidden = false;
+    }
+
+    // --- Admin Handlers ---
+    function openAdminModal(act = null) {
+        adminForm.reset();
+        document.getElementById('uploadStatus').textContent = '';
+        if (act) {
+            adminModalTitle.textContent = "Edit Activity";
+            adminModalSubmit.textContent = "Save Changes";
+            editActId.value = act.id;
+            document.getElementById('newActTitle').value = act.title;
+            document.getElementById('newActCategory').value = act.category;
+            document.getElementById('newActImage').value = act.image_url || '';
+            document.getElementById('newActAudio').value = act.audio_url || '';
+            document.getElementById('newActDesc').value = act.description;
+            document.getElementById('newActDuration').value = act.duration;
+            document.getElementById('newActEmotion').value = act.target_emotion;
+            document.getElementById('newActType').value = act.action_type || 'article';
+            document.getElementById('newActPrompt').value = act.prompt || '';
+            document.getElementById('newActContent').value = act.content || '';
+            
+            // Trigger change event to show/hide fields
+            document.getElementById('newActType').dispatchEvent(new Event('change'));
+        } else {
+            adminModalTitle.textContent = "Create Wellness Activity";
+            adminModalSubmit.textContent = "Publish Activity";
+            editActId.value = "";
+            document.getElementById('newActType').dispatchEvent(new Event('change'));
+        }
+        adminModal.hidden = false;
+    }
+
+    window.handleEditActivity = function(id) {
+        const act = allActivitiesList.find(a => a.id === id);
+        if (act) openAdminModal(act);
+    };
+
+    window.handleDeleteActivity = function(id) {
+        const modal = document.getElementById('deleteConfirmModal');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+        modal.hidden = false;
+
+        // One-time listener for confirm
+        confirmBtn.onclick = async () => {
+            try {
+                const res = await fetch('/api/admin/delete_activity', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id: id})
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    modal.hidden = true;
+                    loadActivities();
+                } else {
+                    alert(data.error || "Delete failed");
+                }
+            } catch(e) {
+                alert("An error occurred");
+            }
+        };
+
+        cancelBtn.onclick = () => {
+            modal.hidden = true;
+        };
+    };
+
+    // Image Upload Handler
+    document.getElementById('imageUploadInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const status = document.getElementById('uploadStatus');
+        status.textContent = "Uploading...";
+        
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const res = await fetch('/api/upload_image', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.ok) {
+                document.getElementById('newActImage').value = data.url;
+                status.textContent = "Upload successful!";
+            } else {
+                status.textContent = "Upload failed: " + (data.error || "Error");
+            }
+        } catch(e) {
+            status.textContent = "Upload error occurred.";
+        }
+    });
+
+    document.getElementById('createModalClose').onclick = () => adminModal.hidden = true;
+    document.getElementById('createModalCancel').onclick = () => adminModal.hidden = true;
+
+    adminForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = editActId.value;
+        const payload = {
+            title: document.getElementById('newActTitle').value,
+            category: document.getElementById('newActCategory').value,
+            image_url: document.getElementById('newActImage').value,
+            audio_url: document.getElementById('newActAudio').value,
+            description: document.getElementById('newActDesc').value,
+            duration: document.getElementById('newActDuration').value,
+            target_emotion: document.getElementById('newActEmotion').value,
+            action_type: document.getElementById('newActType').value,
+            prompt: document.getElementById('newActPrompt').value,
+            content: document.getElementById('newActContent').value
+        };
+
+        const url = id ? '/api/admin/update_activity' : '/api/admin/create_activity';
+        if (id) payload.id = id;
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if(data.ok) {
+            adminModal.hidden = true;
+            loadActivities();
+        } else {
+            alert(data.error || "Operation failed");
+        }
+    };
+
+    // Activity Journaling Logs
+    document.getElementById('viewLogsBtn').addEventListener('click', async () => {
+        const body = document.getElementById('logsModalBody');
+        body.innerHTML = '<p style="text-align:center;">Loading your journal entries...</p>';
+        document.getElementById('logsModal').hidden = false;
+
+        try {
+            const res = await fetch('/api/get_activity_logs');
+            const data = await res.json();
+            if (data.logs && data.logs.length > 0) {
+                body.innerHTML = data.logs.map(log => `
+                    <div class="log-item" style="border-bottom: 1px solid #eee; padding: 15px 0;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <strong style="color: var(--primary);">${log.activity_title}</strong>
+                            <small style="color: var(--text-muted);">${new Date(log.created_at).toLocaleDateString()}</small>
+                        </div>
+                        <p style="margin: 0; color: var(--text-main); font-style: italic;">"${log.content}"</p>
+                    </div>
+                `).join('');
+            } else {
+                body.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">No entries yet.</p>';
+            }
+        } catch(e) { console.error(e); body.innerHTML = 'Error loading logs.'; }
+    });
+    document.getElementById('logsModalClose').onclick = () => document.getElementById('logsModal').hidden = true;
+
+    // ---- Renderers ----
+    function renderBreatheMode(title) {
+       modalBody.innerHTML = `
+         <div class="flex-column-center">
+            <div class="interactive-breath-circle"><div id="breathInstruction" class="breath-text">Breathe In...</div></div>
+            <p id="breathCounter" class="breath-counter">0:00</p>
+         </div>
+       `;
+       let seconds = 0;
+       const circle = modalBody.querySelector('.interactive-breath-circle');
+       const instrEl = document.getElementById('breathInstruction');
+       const countEl = document.getElementById('breathCounter');
+       circle.style.transform = 'scale(1.5)';
+       currentInterval = setInterval(() => {
+          seconds++;
+          countEl.textContent = `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+          const cycle = seconds % 14; 
+          if (cycle === 0) { instrEl.textContent = "Breathe In..."; circle.style.transform = 'scale(1.5)'; circle.style.opacity = '0.4'; }
+          else if (cycle === 4) { instrEl.textContent = "Hold..."; }
+          else if (cycle === 8) { instrEl.textContent = "Exhale..."; circle.style.transform = 'scale(1)'; circle.style.opacity = '0.8'; }
+       }, 1000);
+    }
+
+    function renderJournalMode(title, prompt, id) {
+       modalBody.innerHTML = `<p class="journal-prompt-display">${prompt}</p><textarea id="privateJournal" class="interactive-journal" placeholder="Start typing..."></textarea>`;
+       modalFooter.innerHTML = `<button class="btn btn-ghost" onclick="resetModal()">Discard</button><button class="btn btn-primary btn-pill" id="saveJournalBtn">Save Entry</button>`;
+       modalFooter.hidden = false;
+       document.getElementById('saveJournalBtn').onclick = async () => {
+         const content = document.getElementById('privateJournal').value;
+         if (!content.trim()) return;
+         const res = await fetch('/api/save_activity_log', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ activityId: id, content: content }) });
+         if ((await res.json()).ok) resetModal();
+       };
+    }
+
+    function renderAudioMode(title, audioUrl) {
+       modalBody.innerHTML = `<div class="audio-player-wrapper"><div class="audio-waves"><span></span><span></span><span></span><span></span><span></span></div><p class="audio-status">${audioUrl ? 'Ready' : 'Simulating...'}</p><div class="progress-bar-bg"><div id="audioProgress" class="progress-bar-fill"></div></div><div class="audio-controls"><button class="audio-ctrl-btn"></button><button class="audio-ctrl-btn main-play-btn" id="audioToggle"></button><button class="audio-ctrl-btn"></button></div>${audioUrl ? `<audio id="realAudio" src="${audioUrl}"></audio>` : ''}</div>`;
+       let progress = 0; let playing = false;
+       const toggleBtn = document.getElementById('audioToggle');
+       const progressFill = document.getElementById('audioProgress');
+       const waves = document.querySelector('.audio-waves');
+       const statusEl = document.querySelector('.audio-status');
+       const realAudio = document.getElementById('realAudio');
+       if (realAudio) window.currentAudioElement = realAudio;
+       
+       toggleBtn.onclick = () => {
+          playing = !playing;
+          if (realAudio) {
+              if (playing) { realAudio.play(); statusEl.textContent = 'Playing...'; waves.classList.remove('paused'); }
+              else { realAudio.pause(); statusEl.textContent = 'Paused'; waves.classList.add('paused'); }
+          } else {
+              statusEl.textContent = playing ? 'Simulating...' : 'Paused';
+              if(playing) waves.classList.remove('paused'); else waves.classList.add('paused');
+          }
+       };
+       audioTimer = setInterval(() => {
+          if (!playing) return;
+          if (realAudio) { progress = (realAudio.currentTime / (realAudio.duration || 1)) * 100; if (realAudio.ended) { playing = false; waves.classList.add('paused'); statusEl.textContent = 'Finished'; } }
+          else progress += 0.5;
+          if (progress > 100) progress = 100;
+          progressFill.style.width = progress + '%';
+       }, 500);
+    }
+
+    function renderArticleMode(title, htmlContent) {
+       modalBody.innerHTML = `<div class="article-content-wrapper">${htmlContent}</div>`;
+       modalFooter.innerHTML = `<button class="btn btn-primary btn-pill" onclick="resetModal()">Done</button>`;
+       modalFooter.hidden = false;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadActivities);
+  </script>
+</body>
+</html>

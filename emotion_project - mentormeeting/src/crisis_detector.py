@@ -32,6 +32,14 @@ HIGH_RISK_PATTERNS = [
     r"\bjump off\b",
     r"\bjump out of the window\b",
     r"\bjump from the window\b",
+    r"\bjump out of window\b",
+    r"\bjump from window\b",
+    r"\bjump from the building\b",
+    r"\bjump from building\b",
+    r"\bjump form the building\b",
+    r"\bjump form building\b",
+    r"\bjump off a building\b",
+    r"\bjump off the building\b",
 ]
 
 MEDIUM_RISK_PATTERNS = [

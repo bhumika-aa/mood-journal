@@ -3,3 +3,5 @@ mysql-connector-python
 numpy
 nltk
 python-dotenv
+pandas
+scikit-learn

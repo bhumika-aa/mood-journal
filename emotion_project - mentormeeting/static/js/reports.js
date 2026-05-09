@@ -1,20 +1,10 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // Load data embedded from backend
-  const dataScript = document.getElementById("reportsData");
-  let reportsData = { distribution: {}, history: [], trusted_contact: null, current_days: 1 };
-
-  try {
-    if (dataScript) {
-      reportsData = JSON.parse(dataScript.textContent);
-    }
-  } catch (e) {
-    console.error("Failed to parse reports data", e);
-  }
-
+window.renderReports = function(reportsData) {
+  if (!reportsData) return;
 
   // Pre-fill Trusted Contact
   if (reportsData.trusted_contact) {
-    document.getElementById("trustedEmail").value = reportsData.trusted_contact;
+    const trustedInput = document.getElementById("trustedEmail");
+    if (trustedInput) trustedInput.value = reportsData.trusted_contact;
   }
 
   const { distribution, history, calendar_history, current_days } = reportsData;
@@ -28,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     pill.addEventListener("click", () => {
-      // Direct reload to backend endpoint with new params to fetch new scoped data
+      // Reload with new scope
       const days = pill.dataset.days;
       window.location.href = `/reports?days=${days}`;
     });
@@ -40,14 +30,16 @@ document.addEventListener("DOMContentLoaded", () => {
     Good: "#bbf7d0",
     Fine: "#fef08a",
     Bad: "#fed7aa",
-    Terrible: "#fca5a5"
+    Terrible: "#fca5a5",
+    Crisis: "#ef4444" // Bright red for crisis
   };
   const MOOD_SCORES = {
     Awesome: 5,
     Good: 4,
     Fine: 3,
     Bad: 2,
-    Terrible: 1
+    Terrible: 1,
+    Crisis: 0 // Lowest score for crisis
   };
 
   // 2. Charts Initialization
@@ -61,51 +53,51 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevBtn = document.getElementById("prevMonthBtn");
   const nextBtn = document.getElementById("nextMonthBtn");
   if (prevBtn && nextBtn) {
-    // Add text if icons are missing
     if (!prevBtn.innerHTML) prevBtn.innerHTML = "‹";
     if (!nextBtn.innerHTML) nextBtn.innerHTML = "›";
 
-    prevBtn.addEventListener("click", () => {
+    prevBtn.onclick = () => {
       window.currentMonthOffset -= 1;
       initCalendar(calendar_history);
-    });
-    nextBtn.addEventListener("click", () => {
+    };
+    nextBtn.onclick = () => {
       window.currentMonthOffset += 1;
       initCalendar(calendar_history);
-    });
+    };
   }
-
 
   // 4. Emotional Insights
   generateInsights(distribution, history);
 
   // 5. Trusted Contact API
   const contactForm = document.getElementById("trustedContactForm");
-  contactForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const emailStr = document.getElementById("trustedEmail").value.trim();
-    if (!emailStr) return;
+  if (contactForm) {
+    contactForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const emailStr = document.getElementById("trustedEmail").value.trim();
+      if (!emailStr) return;
 
-    try {
-      const res = await fetch("/api/trusted_contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailStr }),
-      });
-      const data = await res.json();
-      const fb = document.getElementById("trustedFeedback");
-      if (data.ok) {
-        fb.textContent = "Trusted contact saved successfully ";
-        fb.style.color = "var(--success-color)";
-      } else {
-        fb.textContent = "Failed: " + data.error;
-        fb.style.color = "var(--error-color)";
+      try {
+        const res = await fetch("/api/trusted_contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailStr }),
+        });
+        const data = await res.json();
+        const fb = document.getElementById("trustedFeedback");
+        if (data.ok) {
+          fb.textContent = "Trusted contact saved successfully ";
+          fb.style.color = "var(--success-color)";
+        } else {
+          fb.textContent = "Failed: " + data.error;
+          fb.style.color = "var(--error-color)";
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
-    }
-  });
-});
+    };
+  }
+};
 
 function initPieChart(distribution, colorsObj) {
   const ctx = document.getElementById('moodPieChart');
@@ -152,10 +144,14 @@ function initLineChart(history, scoreMap, colorMap) {
   const ctx = document.getElementById('moodLineChart');
   if (!ctx) return;
 
-  // We want to map dates to scores. For multiple entries in a day, take average or just list them.
-  // Simplifying: Just plot each entry linearly against its CreatedAt date format
-  const labels = history.map(item => new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-  const dataPoints = history.map(item => scoreMap[item.selected_mood] || 3);
+  // Sort history by date ascending for a proper trend line (left to right)
+  const sortedHistory = [...history].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const labels = sortedHistory.map(item => new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+  const dataPoints = sortedHistory.map(item => {
+    if (item.predicted_emotion === 'Crisis') return 0;
+    return scoreMap[item.selected_mood] || 3;
+  });
 
   new Chart(ctx, {
     type: 'line',
@@ -167,7 +163,10 @@ function initLineChart(history, scoreMap, colorMap) {
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderWidth: 3,
-        pointBackgroundColor: history.map(item => colorMap[item.selected_mood] || '#10b981'),
+        pointBackgroundColor: sortedHistory.map(item => {
+          if (item.predicted_emotion === 'Crisis') return colorMap['Crisis'];
+          return colorMap[item.selected_mood] || '#10b981';
+        }),
         pointRadius: 5,
         fill: true,
         tension: 0.4
@@ -182,7 +181,7 @@ function initLineChart(history, scoreMap, colorMap) {
           ticks: {
             stepSize: 1,
             callback: function (value) {
-              const reverseMap = { 1: 'Terrible', 2: 'Bad', 3: 'Fine', 4: 'Good', 5: 'Awesome' };
+              const reverseMap = { 0: 'Crisis', 1: 'Terrible', 2: 'Bad', 3: 'Fine', 4: 'Good', 5: 'Awesome' };
               return reverseMap[value] || '';
             }
           }
@@ -256,7 +255,8 @@ function initCalendar(history) {
       const primaryEntry = historyByDate[dateStr][0];
       const mood = primaryEntry.selected_mood;
 
-      if (['Awesome', 'Good'].includes(mood)) dayDiv.classList.add('mood-bg-good');
+      if (primaryEntry.predicted_emotion === 'Crisis') dayDiv.classList.add('crisis-tag');
+      else if (['Awesome', 'Good'].includes(mood)) dayDiv.classList.add('mood-bg-good');
       else if (mood === 'Fine') dayDiv.classList.add('mood-bg-fine');
       else if (['Bad', 'Terrible'].includes(mood)) dayDiv.classList.add('mood-bg-bad');
 
@@ -330,10 +330,14 @@ function generateInsights(distribution, history) {
 
   const positiveTotal = (distribution['Awesome'] || 0) + (distribution['Good'] || 0);
   const neutralTotal = (distribution['Fine'] || 0);
-  const negTotal = (distribution['Bad'] || 0) + (distribution['Terrible'] || 0);
+  const negTotal = (distribution['Bad'] || 0) + (distribution['Terrible'] || 0) + (distribution['Crisis'] || 0);
 
   const positivity = Math.round((positiveTotal / total) * 100);
   posSpan.textContent = `${positivity}% Positive`;
+  
+  if (distribution['Crisis'] > 0) {
+      posSpan.innerHTML += ` <span style="color:#ef4444; font-size: 0.8em;">(Alert: Crisis Detected)</span>`;
+  }
 
   // Summary bullets
   summaryList.innerHTML = "";
@@ -344,15 +348,27 @@ function generateInsights(distribution, history) {
     summaryList.innerHTML += `<li>You've experienced more challenging days this period.</li>`;
   }
 
-  // Smart Recommendation Logic
+  // Recommendation Logic
   if (negTotal > 0 || positivity < 50) {
     document.getElementById('reportsRecCard').style.display = "block";
     const recList = document.getElementById('reportsRecList');
-    recList.innerHTML = `
-      <li><strong>Breathing Exercise:</strong> Take 5 minutes to ground yourself.</li>
-      <li><strong>Journaling:</strong> Let your negative thoughts flow honestly.</li>
-      <li><strong>Walk:</strong> Gentle outdoor walks improve baseline stress levels.</li>
-    `;
+    
+    // Clear list and styles
+    recList.innerHTML = "";
+    recList.style = ""; // Reset grid styles
+
+    const recommendations = [
+        "<strong>Breathing Exercise:</strong> Take 5 minutes to ground yourself.",
+        "<strong>Journaling:</strong> Let your negative thoughts flow honestly.",
+        "<strong>Walk:</strong> Gentle outdoor walks improve baseline stress levels."
+    ];
+
+    recommendations.forEach(rec => {
+        const li = document.createElement("li");
+        li.innerHTML = rec;
+        li.style.marginBottom = "12px";
+        recList.appendChild(li);
+    });
   }
 }
 

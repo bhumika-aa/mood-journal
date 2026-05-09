@@ -4,7 +4,6 @@ import os
 from typing import Any, Optional
 
 import mysql.connector
-from mysql.connector import Error
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,7 +32,7 @@ def get_user_by_email(email: str) -> Optional[dict[str, Any]]:
     conn = connect()
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id, email, name, password_hash FROM users WHERE email = %s", (email,))
+        cur.execute("SELECT id, email, name, password_hash, is_admin FROM users WHERE email = %s", (email,))
         return cur.fetchone()
     finally:
         try:
@@ -89,9 +88,15 @@ def init_db() -> None:
                 email VARCHAR(255) UNIQUE,
                 name VARCHAR(255),
                 password_hash VARCHAR(255),
+                is_admin TINYINT(1) DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Ensure is_admin exists
+        cur.execute("SHOW COLUMNS FROM users LIKE 'is_admin'")
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0")
 
         # Ensure password_hash exists (for older database versions)
         cur.execute("SHOW COLUMNS FROM users LIKE 'password_hash'")
@@ -126,6 +131,21 @@ def init_db() -> None:
         if not cur.fetchone():
             cur.execute("ALTER TABLE mood_journals ADD COLUMN is_favourite TINYINT(1) DEFAULT 0")
 
+        # Ensure depression/anxiety/wellness columns exist
+        cols = {
+            "depression_level": "VARCHAR(50)",
+            "anxiety_level": "VARCHAR(50)",
+            "depression_score": "INT",
+            "anxiety_score": "INT",
+            "wellness_score": "INT",
+            "wellness_level": "VARCHAR(50)",
+            "recommendations": "TEXT"
+        }
+        for col, col_type in cols.items():
+            cur.execute(f"SHOW COLUMNS FROM mood_journals LIKE '{col}'")
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE mood_journals ADD COLUMN {col} {col_type}")
+
 
         # Trusted Contacts
         cur.execute("""
@@ -146,42 +166,82 @@ def init_db() -> None:
                 duration VARCHAR(50),
                 category VARCHAR(100),
                 target_emotion VARCHAR(50),
-                icon VARCHAR(50)
+                icon VARCHAR(50),
+                image_url VARCHAR(255),
+                audio_url VARCHAR(255),
+                action_type VARCHAR(50) DEFAULT 'article',
+                prompt TEXT,
+                content TEXT
             )
         """)
 
-        # Seed Activities (Wiping and re-seeding with the EXACT ones from activities.html)
+        # Ensure columns exist if table already existed
+        column_checks = {
+            "icon": "VARCHAR(50)",
+            "image_url": "VARCHAR(255)",
+            "audio_url": "VARCHAR(255)",
+            "action_type": "VARCHAR(50) DEFAULT 'article'",
+            "prompt": "TEXT",
+            "content": "TEXT"
+        }
+        for col, col_type in column_checks.items():
+            cur.execute(f"SHOW COLUMNS FROM activities LIKE '{col}'")
+            if not cur.fetchone():
+                cur.execute(f"ALTER TABLE activities ADD COLUMN {col} {col_type}")
+
+        # Activity Logs (to save user entries)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                activity_id INT,
+                content TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Seed Activities
         cur.execute("SELECT COUNT(*) FROM activities")
-        cur.fetchone() # Clear the result buffer
+        cur.fetchone() 
         
         cur.execute("TRUNCATE TABLE activities")
 
         sample_activities = [
-            # Happy / Positive
-            ("Gratitude Journaling", "Shift focus to the positives in your life.", "5 min", "Mind & Reflection", "Happy", ""),
-            ("Positive Affirmations", "Rebuild confidence through kind words.", "2 min", "Mind & Reflection", "Happy", ""),
-            ("Victory Log", "List three small things you accomplished today.", "10 min", "Reflective", "Happy", ""),
-            
-            # Anxious / Stress
-            ("Deep Breathing Exercise", "Breathe in for 4, hold for 4, exhale for 6.", "2 min", "Quick Calm", "Anxious", ""),
-            ("5-4-3-2-1 Grounding", "Focus on your immediate surroundings to calm down.", "3 min", "Quick Calm", "Anxious", ""),
-            ("Close Your Eyes", "Rest your eyes and relax your facial muscles.", "1 min", "Quick Calm", "Anxious", ""),
-            ("How To Deal With Stress", "Read actionable tips for managing daily life stress.", "Article", "Learn & Heal", "Anxious", ""),
-            
-            # Sad / Low
-            ("Write Your Feelings", "A safe space to untangle your heavy thoughts.", "5 min", "Mind & Reflection", "Sad", ""),
-            ("Short Walk Challenge", "Get some fresh air and change your environment.", "10 min", "Physical Reset", "Sad", ""),
-            ("Nature Walk", "A short walk outside to refresh your perspective.", "15 min", "Exercise", "Sad", ""),
-            ("Connection Time", "Send a quick message to a friend or loved one.", "5 min", "Social", "Sad", ""),
-            
-            # Angry / Frustrated
-            ("Stretching Routine", "Release physical tension softly from your body.", "5 min", "Physical Reset", "Angry", ""),
-            ("Box Breathing", "A structured technique to regain emotional control.", "5 min", "Mindfulness", "Angry", ""),
-            ("Stress Release", "Try a quick physical activity to release heat.", "10 min", "Physical", "Angry", "")
+            # Mind & Reflection
+            ("Gratitude Journaling", "Shift focus to the positives in your life.", "5 min", "Mind & Reflection", "Happy", "/static/img/gratitude journaling.jpeg", "journal", "List three things you're grateful for today.", ""),
+            ("Positive Affirmations", "Rebuild confidence through kind words.", "2 min", "Mind & Reflection", "Happy", "/static/img/positive affrimation.jpeg", "article", "", "<h3>Daily Affirmations</h3><p>I am capable of handling whatever comes my way today.</p><p>I choose to focus on what I can control.</p>"),
+            ("Mindful Observation", "Focus on one object for a full minute to center yourself.", "1 min", "Mind & Reflection", "Happy", "/static/img/mindful observation.jpeg", "article", "", "<h3>Mindful Observation</h3><p>Choose an object in your room. Notice its color, texture, and how the light hits it. Stay with it for 60 seconds.</p>"),
+            ("Inner Peace Scan", "A mental check-in to find where you feel most calm.", "5 min", "Mind & Reflection", "Happy", "/static/img/inner peace csan.jpeg", "journal", "Where in your body do you feel most at peace right now?", ""),
+
+            # Quick Calm
+            ("Deep Breathing Exercise", "Breathe in for 4, hold for 4, exhale for 6.", "2 min", "Quick Calm", "Anxious", "/static/img/deep breathing.jpeg", "breathe", "", ""),
+            ("5-4-3-2-1 Grounding", "Focus on your immediate surroundings to calm down.", "3 min", "Quick Calm", "Anxious", "/static/img/5-4-3-2-1.jpeg", "article", "", "<h3>Grounding Technique</h3><p>Name 5 things you can see, 4 things you can touch, 3 things you can hear, 2 things you can smell, and 1 thing you can taste.</p>"),
+            ("Box Breathing", "A structured technique to regain emotional control.", "5 min", "Quick Calm", "Angry", "/static/img/Box Breathing.jpeg", "breathe", "", ""),
+            ("Muscle Relaxation", "Tense and release muscle groups starting from your toes.", "5 min", "Quick Calm", "Anxious", "/static/img/muscles relaxation.jpeg", "article", "", "<h3>Progressive Muscle Relaxation</h3><p>Tense your toes for 5 seconds, then release. Move up to your calves, thighs, and so on.</p>"),
+
+            # Reflective
+            ("Victory Log", "List three small things you accomplished today.", "10 min", "Reflective", "Happy", "/static/img/journaling.jpeg", "journal", "What are your three wins for today?", ""),
+            ("Thought Reframing", "Turn a negative thought into a constructive one.", "10 min", "Reflective", "Sad", "/static/img/journalin2.jpeg", "journal", "Write one negative thought and try to rewrite it from a more compassionate perspective.", ""),
+            ("Letter to Yourself", "Write a kind letter to your future self.", "15 min", "Reflective", "Sad", "/static/img/Daily Journaling.jpeg", "journal", "What would you like to tell yourself 6 months from now?", ""),
+
+            # Physical Reset
+            ("Short Walk Challenge", "Get some fresh air and change your environment.", "10 min", "Physical Reset", "Sad", "/static/img/short walk.jpeg", "article", "", "<h3>Walking Benefits</h3><p>Even a 10-minute walk can significantly boost your mood and energy levels.</p>"),
+            ("Stretching Routine", "Release physical tension softly from your body.", "5 min", "Physical Reset", "Angry", "/static/img/stretching.jpeg", "article", "", "<h3>Gentle Stretching</h3><p>Reach for the sky, then slowly touch your toes. Hold each stretch for 15 seconds.</p>"),
+            ("Shoulder Rolls", "Release the weight of the day from your shoulders.", "2 min", "Physical Reset", "Anxious", "/static/img/shoulder stretch.jpeg", "article", "", "<h3>Shoulder Rolls</h3><p>Roll your shoulders back in slow circles 10 times, then forward 10 times.</p>"),
+
+            # Exercise
+            ("Quick HIIT", "Get your heart rate up with a 5-minute burst.", "5 min", "Exercise", "Angry", "/static/img/quick HIIT.jpeg", "article", "", "<h3>Quick HIIT</h3><p>30 seconds of jumping jacks, 30 seconds of rest. Repeat 5 times.</p>"),
+            ("Yoga Flow", "A simple sequence to connect breath and movement.", "15 min", "Exercise", "Sad", "/static/img/yoga flow.jpeg", "article", "", "<h3>Simple Yoga</h3><p>Try the child's pose, then move into downward dog. Breathe deeply.</p>"),
+            ("Plank Challenge", "Build core strength and mental resilience.", "2 min", "Exercise", "Angry", "/static/img/plank challenge.jpeg", "article", "", "<h3>Plank</h3><p>Hold a plank position for as long as you can up to 2 minutes.</p>"),
+
+            # Social
+            ("Connection Time", "Send a quick message to a friend or loved one.", "5 min", "Social", "Sad", "/static/img/message someone.jpeg", "article", "", "<h3>Social Connection</h3><p>Reaching out to someone you trust can lower stress hormones immediately.</p>"),
+            ("Acts of Kindness", "Do one small thing to help someone else today.", "10 min", "Social", "Happy", "/static/img/act of kindness.jpeg", "journal", "What's one kind thing you did or could do today?", ""),
+            ("Call a Friend", "A real conversation can change your entire day.", "15 min", "Social", "Sad", "/static/img/call someone.jpeg", "article", "", "<h3>Phone Call</h3><p>Hearing a familiar voice provides comfort that text messages can't match.</p>")
         ]
         cur.executemany("""
-            INSERT INTO activities (title, description, duration, category, target_emotion, icon)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO activities (title, description, duration, category, target_emotion, image_url, action_type, prompt, content)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, sample_activities)
 
         conn.commit()
@@ -207,6 +267,13 @@ def insert_feedback(
     feedback: Optional[str],
     risk_level: Optional[str],
     matched_phrases: Optional[list[str]],
+    depression_level: Optional[str] = None,
+    anxiety_level: Optional[str] = None,
+    depression_score: Optional[int] = None,
+    anxiety_score: Optional[int] = None,
+    wellness_score: Optional[int] = None,
+    wellness_level: Optional[str] = None,
+    recommendations: Optional[list[str]] = None,
 ) -> int:
     conn = connect()
     try:
@@ -239,7 +306,14 @@ def insert_feedback(
                   is_match = %s,
                   feedback = %s,
                   risk_level = %s,
-                  matched_phrases = %s
+                  matched_phrases = %s,
+                  depression_level = %s,
+                  anxiety_level = %s,
+                  depression_score = %s,
+                  anxiety_score = %s,
+                  wellness_score = %s,
+                  wellness_level = %s,
+                  recommendations = %s
                 WHERE id = %s
                 """,
                 (
@@ -255,6 +329,13 @@ def insert_feedback(
                     feedback,
                     risk_level,
                     ",".join(matched_phrases) if matched_phrases else None,
+                    depression_level,
+                    anxiety_level,
+                    depression_score,
+                    anxiety_score,
+                    wellness_score,
+                    wellness_level,
+                    "|".join(recommendations) if recommendations else None,
                     journal_id
                 )
             )
@@ -277,9 +358,16 @@ def insert_feedback(
                   is_match,
                   feedback,
                   risk_level,
-                  matched_phrases
+                  matched_phrases,
+                  depression_level,
+                  anxiety_level,
+                  depression_score,
+                  anxiety_score,
+                  wellness_score,
+                  wellness_level,
+                  recommendations
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     user_id,
@@ -295,6 +383,13 @@ def insert_feedback(
                     feedback,
                     risk_level,
                     ",".join(matched_phrases) if matched_phrases else None,
+                    depression_level,
+                    anxiety_level,
+                    depression_score,
+                    anxiety_score,
+                    wellness_score,
+                    wellness_level,
+                    "|".join(recommendations) if recommendations else None,
                 ),
             )
             conn.commit()
@@ -330,7 +425,7 @@ def get_activities_by_emotion(target_emotion: str) -> list[dict[str, Any]]:
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute(
-            "SELECT id, title, description, duration, category, icon FROM activities WHERE target_emotion = %s LIMIT 3",
+            "SELECT id, title, description, duration, category, icon, image_url, audio_url, action_type, prompt, content FROM activities WHERE target_emotion = %s LIMIT 3",
             (target_emotion,)
         )
         return cur.fetchall()
@@ -348,13 +443,59 @@ def get_all_activities() -> list[dict[str, Any]]:
     conn = connect()
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id, title, description, duration, category, target_emotion, icon FROM activities")
+        cur.execute("SELECT id, title, description, duration, category, target_emotion, icon, image_url, audio_url, action_type, prompt, content FROM activities")
         return cur.fetchall()
     finally:
         try:
             conn.close()
         except Exception:
             pass
+
+def get_activity_by_id(activity_id: int) -> Optional[dict[str, Any]]:
+    conn = connect()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM activities WHERE id = %s", (activity_id,))
+        return cur.fetchone()
+    finally:
+        conn.close()
+
+def delete_activity(activity_id: int) -> bool:
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM activities WHERE id = %s", (activity_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error deleting activity: {e}")
+        return False
+    finally:
+        conn.close()
+
+def update_activity(activity_id: int, data: dict[str, Any]) -> bool:
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE activities 
+            SET title=%s, description=%s, duration=%s, category=%s, 
+                target_emotion=%s, image_url=%s, audio_url=%s, 
+                action_type=%s, prompt=%s, content=%s
+            WHERE id=%s
+        """, (
+            data['title'], data['description'], data['duration'], 
+            data['category'], data['target_emotion'], data['image_url'], 
+            data.get('audio_url'), data['action_type'], data.get('prompt'), 
+            data.get('content'), activity_id
+        ))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating activity: {e}")
+        return False
+    finally:
+        conn.close()
 
 
 def get_user_mood_distribution(user_id: int, days: int = 30) -> dict[str, int]:
@@ -364,14 +505,16 @@ def get_user_mood_distribution(user_id: int, days: int = 30) -> dict[str, int]:
     try:
         cur = conn.cursor(dictionary=True)
         cur.execute("""
-            SELECT selected_mood, COUNT(*) as count 
+            SELECT 
+                CASE WHEN predicted_emotion = 'Crisis' THEN 'Crisis' ELSE selected_mood END as mood_key,
+                COUNT(*) as count 
             FROM mood_journals 
             WHERE user_id = %s 
               AND created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
-            GROUP BY selected_mood
+            GROUP BY mood_key
         """, (user_id, days))
         results = cur.fetchall()
-        return {r["selected_mood"]: r["count"] for r in results}
+        return {r["mood_key"]: r["count"] for r in results}
     finally:
         try:
             conn.close()
@@ -471,7 +614,10 @@ def get_today_journal(user_id: int) -> Optional[dict[str, Any]]:
               AND DATE(CONVERT_TZ(created_at, @@session.time_zone, '+05:45')) = DATE(CONVERT_TZ(NOW(), @@session.time_zone, '+05:45'))
             LIMIT 1
         """, (user_id,))
-        return cur.fetchone()
+        row = cur.fetchone()
+        if row and hasattr(row.get("created_at"), "isoformat"):
+            row["created_at"] = row["created_at"].isoformat()
+        return row
     finally:
         try:
             conn.close()
@@ -535,3 +681,64 @@ def check_negative_streak(user_id: int, days: int = 30) -> int:
             conn.close()
         except Exception:
             pass
+
+
+def get_all_users() -> list[dict[str, Any]]:
+    if not db_available():
+        return []
+    conn = connect()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, name, email, password_hash, is_admin, created_at FROM users ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        for r in rows:
+            if hasattr(r["created_at"], "isoformat"):
+                r["created_at"] = r["created_at"].isoformat()
+        return rows
+    finally:
+        conn.close()
+
+def get_all_journals_admin() -> list[dict[str, Any]]:
+    if not db_available():
+        return []
+    conn = connect()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("""
+            SELECT j.*, u.name as user_name, u.email as user_email
+            FROM mood_journals j
+            JOIN users u ON j.user_id = u.id
+            ORDER BY j.created_at DESC
+            LIMIT 100
+        """)
+        rows = cur.fetchall()
+        for r in rows:
+            if hasattr(r["created_at"], "isoformat"):
+                r["created_at"] = r["created_at"].isoformat()
+        return rows
+    finally:
+        conn.close()
+
+def get_admin_stats() -> dict[str, Any]:
+    if not db_available():
+        return {}
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        
+        cur.execute("SELECT COUNT(*) FROM users")
+        total_users = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM mood_journals")
+        total_journals = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM mood_journals WHERE risk_level != 'Low'")
+        total_risky = cur.fetchone()[0]
+        
+        return {
+            "total_users": total_users,
+            "total_journals": total_journals,
+            "total_risky": total_risky
+        }
+    finally:
+        conn.close()
