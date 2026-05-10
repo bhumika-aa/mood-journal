@@ -235,16 +235,51 @@
         }
         .modal-content {
             background: white;
-            margin: 10% auto;
-            padding: 40px;
-            border-radius: 24px;
+            margin: 15vh auto;
+            padding: 48px;
+            border-radius: 40px;
             width: 440px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            position: relative; /* For close button */
         }
+        .modal-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #1A202C; }
         .form-field { margin-bottom: 20px; }
         .form-field label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
         .form-field input[type="text"], .form-field input[type="email"] {
             width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #E2E8F0; font-size: 0.95rem;
+        }
+
+        /* Success Toast */
+        #successToast {
+            display: none;
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2D3748;
+            color: white;
+            padding: 12px 32px;
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
         }
     </style>
 </head>
@@ -260,10 +295,11 @@
             <a onclick="showView('dashboard')" class="nav-link active" id="nav-dashboard">Dashboard</a>
             <a onclick="showView('users')" class="nav-link" id="nav-users">Users</a>
             <a onclick="showView('logs')" class="nav-link" id="nav-logs">Journal Logs</a>
+            <a onclick="showView('settings')" class="nav-link" id="nav-settings">Settings</a>
         </nav>
         <div style="padding: 0 40px;">
             <a href="/dashboard" class="nav-link" style="padding-left: 0; opacity: 0.6;">&larr; Exit Admin</a>
-            <a href="/logout" class="nav-link" style="padding-left: 0; opacity: 0.6;">Sign Out</a>
+            <a href="/logout" class="nav-link" style="padding-left: 0; opacity: 0.6;">Log Out</a>
         </div>
     </aside>
 
@@ -320,6 +356,7 @@
                             <th>Email</th>
                             <th>Password Hash</th>
                             <th>Role</th>
+                            <th>Trusted Contact</th>
                             <th style="text-align: right;">Actions</th>
                         </tr>
                     </thead>
@@ -347,8 +384,39 @@
                 </table>
             </div>
         </div>
+
+        <div id="view-settings" class="admin-view">
+            <div class="header-wrap">
+                <h2>System Settings</h2>
+            </div>
+            <div class="card" style="background: white; padding: 40px; border-radius: 24px; border: 1px solid var(--border-light);">
+                <div class="form-field">
+                    <label style="font-family: 'Lora', serif; font-size: 1.2rem; margin-bottom: 16px;">Trusted Contact Email Template</label>
+                    <p style="color: #718096; margin-bottom: 20px; font-size: 0.9rem;">This message is sent to the user's trusted contact when a persistent low mood streak is detected.</p>
+                    <textarea id="emailTemplate" style="width: 100%; min-height: 350px; padding: 24px; border-radius: 20px; border: 1px solid #E2E8F0; font-family: inherit; font-size: 1rem; line-height: 1.6; color: #2D3748; resize: none; overflow: hidden; background: #F9FAFB; transition: border-color 0.2s; box-sizing: border-box;"></textarea>
+                </div>
+                <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                    <button class="btn btn-primary btn-pill" id="saveSettingsBtn" style="display: none; padding: 12px 32px;" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
+
+<!-- Custom Confirmation Modal -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content" style="width: 440px; text-align: left; padding: 48px;">
+        <span class="modal-close" id="confirmCloseBtn">&times;</span>
+        <h3 id="confirmTitle" style="font-family: 'Lora', serif; font-size: 1.8rem; margin-top: 0; margin-bottom: 16px; color: #1A202C;">Confirm Changes</h3>
+        <p id="confirmBody" style="color: #718096; margin-bottom: 40px; font-size: 1.1rem; font-weight: 500; line-height: 1.4;">Are you sure you want to change?</p>
+        <div style="display: flex; gap: 24px; justify-content: flex-end; align-items: center;">
+            <button type="button" id="confirmCancelBtn" style="background: none; border: none; color: #718096; font-weight: 600; font-size: 1.1rem; cursor: pointer;">Discard</button>
+            <button type="button" id="confirmOkBtn" style="background: var(--admin-primary); color: white; border: none; padding: 12px 32px; border-radius: 100px; font-weight: 600; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 12px rgba(62, 95, 85, 0.2);">Save</button>
+        </div>
+    </div>
+</div>
+
+<div id="successToast">saved successfully!</div>
 
 <!-- Edit User Modal -->
 <div id="editModal" class="modal">
@@ -414,6 +482,7 @@
                     <td>${user.email}</td>
                     <td style="font-family: monospace; font-size: 0.75rem; color: #718096; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${user.password_hash || '---'}</td>
                     <td><span class="badge ${user.is_admin ? 'badge-admin' : 'badge-user'}">${user.is_admin ? 'Admin' : 'User'}</span></td>
+                    <td>${user.trusted_contact || '<span style="color: #A0AEC0; font-style: italic;">None</span>'}</td>
                     <td style="text-align: right;">
                         <div class="action-dropdown">
                             <button class="btn-action">Actions</button>
@@ -443,7 +512,31 @@
                 </tr>
             `;
         });
+
+        // Load Settings
+        const settingsRes = await fetch('/api/admin/settings');
+        const settings = await settingsRes.json();
+        const templateArea = document.getElementById('emailTemplate');
+        templateArea.value = settings.trusted_contact_email_template || '';
+        window.originalTemplate = templateArea.value; // Store for comparison
+        autoExpand(templateArea);
     }
+
+    function autoExpand(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    document.getElementById('emailTemplate').addEventListener('input', function() {
+        autoExpand(this);
+        const saveBtn = document.getElementById('saveSettingsBtn');
+        if (this.value !== window.originalTemplate) {
+            saveBtn.style.display = 'block';
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    });
+
 
     function showView(viewId) {
         document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
@@ -482,17 +575,6 @@
         }
     });
 
-    async function deleteUser(id) {
-        if (!confirm('Are you sure you want to permanently delete this user account? This cannot be undone.')) return;
-        const res = await fetch('/api/admin/delete_user', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({userId: id})
-        });
-        const data = await res.json();
-        if (data.ok) fetchData();
-        else alert(data.error || 'Delete failed');
-    }
 
     document.addEventListener('DOMContentLoaded', fetchData);
 
@@ -502,6 +584,120 @@
             localStorage.clear();
         });
     });
+
+    // --- Custom Modal System ---
+    let confirmResolve = null;
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmBody = document.getElementById('confirmBody');
+    const confirmOkBtn = document.getElementById('confirmOkBtn');
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+    const confirmCloseBtn = document.getElementById('confirmCloseBtn');
+
+    function showConfirm(options = {}) {
+        confirmTitle.textContent = options.title || 'Are you sure?';
+        confirmBody.textContent = options.body || 'Are you sure you want to change?';
+        confirmOkBtn.textContent = options.okText || 'Save';
+        confirmCancelBtn.textContent = options.cancelText || 'Discard';
+        
+        // Style adjustments for destructive actions
+        if (options.isDestructive) {
+            confirmOkBtn.style.background = '#E53E3E';
+            confirmOkBtn.style.boxShadow = '0 4px 12px rgba(229, 62, 62, 0.2)';
+        } else {
+            confirmOkBtn.style.background = 'var(--admin-primary)';
+            confirmOkBtn.style.boxShadow = '0 4px 12px rgba(62, 95, 85, 0.2)';
+        }
+
+        confirmModal.style.display = 'block';
+        return new Promise((resolve) => {
+            confirmResolve = resolve;
+        });
+    }
+
+    confirmOkBtn.addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+        if (confirmResolve) confirmResolve(true);
+    });
+
+    confirmCancelBtn.addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+        if (confirmResolve) confirmResolve(false);
+    });
+
+    confirmCloseBtn.addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+        if (confirmResolve) confirmResolve(false);
+    });
+
+    function showToast(msg) {
+        const toast = document.getElementById('successToast');
+        toast.textContent = msg || 'saved successfully!';
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    // Replace original saveSettings
+    async function saveSettings() {
+        const templateArea = document.getElementById('emailTemplate');
+        const confirmed = await showConfirm({
+            title: 'Confirm Changes',
+            body: 'Are you sure you want to update the email template?',
+            okText: 'Save',
+            cancelText: 'Discard'
+        });
+        
+        if (!confirmed) {
+            // Revert value if user clicks Discard
+            templateArea.value = window.originalTemplate;
+            autoExpand(templateArea);
+            document.getElementById('saveSettingsBtn').style.display = 'none';
+            return;
+        }
+
+        const template = templateArea.value;
+        const res = await fetch('/api/admin/update_setting', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({key: 'trusted_contact_email_template', value: template})
+        });
+        const data = await res.json();
+        if (data.ok) {
+            window.originalTemplate = template;
+            document.getElementById('saveSettingsBtn').style.display = 'none';
+            showToast('saved successfully!');
+        } else {
+            alert('Failed to save settings');
+        }
+    }
+
+    // Replace original deleteUser
+    async function deleteUser(id) {
+        const confirmed = await showConfirm({
+            title: 'Delete User',
+            body: 'Are you sure you want to permanently delete this user account? This cannot be undone.',
+            okText: 'Delete',
+            cancelText: 'Discard',
+            isDestructive: true
+        });
+        
+        if (!confirmed) return;
+
+        const res = await fetch('/api/admin/delete_user', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({userId: id})
+        });
+        const data = await res.json();
+        if (data.ok) {
+            fetchData();
+            showToast('User deleted successfully');
+        } else {
+            alert(data.error || 'Delete failed');
+        }
+    }
 </script>
 
 </body>

@@ -227,7 +227,7 @@
         window.todayEntry = data.today_entry || null;
 
         if (typeof initDashboard === 'function') {
-          initDashboard();
+          initDashboard(userData.user_id);
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);

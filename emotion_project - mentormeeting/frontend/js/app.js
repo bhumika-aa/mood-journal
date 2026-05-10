@@ -404,31 +404,43 @@ function resumeProgress() {
   introScreen.hidden = true;
   moodForm.hidden = false;
 
-  // Restore step
-  setStep(savedStep);
-
   // 1. Restore Mood
   const savedMood = localStorage.getItem("journalMood");
   if (savedMood) {
+    selectedMoodInput.value = savedMood;
     const moodBtn = moodGrid.querySelector(`.mood-card[data-mood="${savedMood}"]`);
-    if (moodBtn) moodBtn.click();
+    if (moodBtn) {
+      moodGrid.querySelectorAll(".mood-card").forEach((b) => b.classList.remove("selected"));
+      moodBtn.classList.add("selected");
+    }
+    toStep2Btn.disabled = false;
   }
 
   // 2. Restore Emotion
   const savedEmo = localStorage.getItem("journalEmotion");
   if (savedEmo && savedMood) {
     renderEmotionGrid();
+    selectedSecondaryInput.value = savedEmo;
     setTimeout(() => {
       const emoChip = emotionGrid.querySelector(`.emotion-chip[data-emotion="${savedEmo}"]`);
-      if (emoChip) emoChip.click();
-    }, 150);
+      if (emoChip) {
+        emotionGrid.querySelectorAll(".emotion-chip").forEach((b) => b.classList.remove("selected"));
+        emoChip.classList.add("selected");
+      }
+    }, 100);
+    toStep3Btn.disabled = false;
   }
 
   // 3. Restore Cause
   const savedCause = localStorage.getItem("journalCause");
   if (savedCause) {
+    selectedCauseInput.value = savedCause;
     const causeBtn = causeGrid.querySelector(`.cause-card[data-cause="${savedCause}"]`);
-    if (causeBtn) causeBtn.click();
+    if (causeBtn) {
+      causeGrid.querySelectorAll(".cause-card").forEach((b) => b.classList.remove("selected"));
+      causeBtn.classList.add("selected");
+    }
+    toStep4Btn.disabled = false;
   }
 
   // 4. Restore Text
@@ -437,15 +449,34 @@ function resumeProgress() {
     journalText.value = savedText;
     if (savedText.trim().length > 0) analyzeBtn.disabled = false;
   }
+
+  // Restore step LAST
+  setStep(savedStep);
 }
 
-window.initDashboard = function () {
+window.initDashboard = function (currentUserId) {
   const savedStep = localStorage.getItem("journalStep");
   const savedResult = localStorage.getItem("journalAnalysisResult");
   const lastSavedDate = localStorage.getItem("journalLastDate");
+  const lastUserId = localStorage.getItem("journalUserId");
   const today = new Date().toDateString();
 
-  // If the saved data is from a different day, clear it
+  // 1. Cross-user data leakage protection
+  if (currentUserId && lastUserId && String(currentUserId) !== String(lastUserId)) {
+    console.log("New user detected. Clearing previous user's draft data.");
+    const keysToClear = ["journalStep", "journalAnalysisResult", "journalMood", "journalEmotion", "journalCause", "journalText", "journalLastDate", "journalUserId"];
+    keysToClear.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem("journalUserId", currentUserId);
+    startJournalingBtn.textContent = "Start Journaling";
+    return;
+  }
+  
+  // Set the user ID if not set
+  if (currentUserId) {
+    localStorage.setItem("journalUserId", currentUserId);
+  }
+
+  // 2. Daily cleanup
   if (lastSavedDate && lastSavedDate !== today) {
     localStorage.removeItem("journalStep");
     localStorage.removeItem("journalAnalysisResult");
@@ -479,9 +510,9 @@ window.initDashboard = function () {
     moodForm.hidden = true;
     startJournalingBtn.textContent = "Resume Journaling";
 
-    // Also pre-fill the form in the background so it's ready when they click Resume
+    // Pre-fill hidden inputs in background
     resumeProgress();
-    // But then hide it again because resumeProgress() unhides it
+    // Re-hide because resumeProgress unhides
     introScreen.hidden = false;
     moodForm.hidden = true;
   } else {
